@@ -104,7 +104,6 @@ interface UserRecord {
 - [x] Logout funcional
 
 ### 🔄 Próximos Passos
-- [ ] Sincronização de dados entre sistemas
 - [ ] SSO (Single Sign-On) automático
 - [ ] Perfis de usuário compartilhados
 - [ ] Notificações cross-platform
