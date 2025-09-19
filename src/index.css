@@ -9,7 +9,7 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Dark Purple Theme - inspired by CodeBot interface */
-    --background: 230 25% 8%;
+    --background: 0 0% 3.9%;
     --foreground: 213 31% 91%;
 
     --card: 231 25% 12%;
@@ -54,7 +54,7 @@ All colors MUST be HSL.
     --ring: 263 70% 50%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(263 70% 50%), hsl(263 70% 60%));
+    --gradient-primary: linear-gradient(135deg, hsl(264, 83%, 2%), hsl(263, 80%, 4%));
     --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 46%));
     --gradient-bg: linear-gradient(180deg, hsl(230 25% 8%), hsl(230 25% 10%));
 
@@ -83,18 +83,21 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+   --background: 10 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
 
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
 
