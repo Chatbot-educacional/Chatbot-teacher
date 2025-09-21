@@ -11,13 +11,25 @@ import PrivateRoute from "./components/dashboard/PrivateRoute";
 
 const queryClient = new QueryClient();
 
+const resolveRouterBase = () => {
+  const value = import.meta.env.VITE_APP_BASE_PATH ?? "/";
+  if (!value || value === "/") {
+    return "/";
+  }
+
+  const trimmed = value.replace(/^\/+|\/+$/g, "");
+  return `/${trimmed}`;
+};
+
+const routerBase = resolveRouterBase();
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename={routerBase}>
           <Routes>
             <Route 
               path="/" 
