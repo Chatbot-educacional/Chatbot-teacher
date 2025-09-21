@@ -12,13 +12,21 @@ import PrivateRoute from "./components/dashboard/PrivateRoute";
 const queryClient = new QueryClient();
 
 const resolveRouterBase = () => {
-  const value = import.meta.env.VITE_APP_BASE_PATH ?? "/";
+  const configured = import.meta.env.VITE_APP_BASE_PATH;
+  const fallback = import.meta.env.DEV ? "/" : "/teacher";
+  const value = configured ?? fallback;
+
   if (!value || value === "/") {
     return "/";
   }
 
-  const trimmed = value.replace(/^\/+|\/+$/g, "");
-  return `/${trimmed}`;
+  let normalized = value.trim();
+
+  if (!normalized.startsWith("/")) {
+    normalized = `/${normalized}`;
+  }
+
+  return normalized.replace(/\/+$/, "");
 };
 
 const routerBase = resolveRouterBase();
@@ -29,7 +37,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename={routerBase}>
+        <BrowserRouter basename={routerBase === "/" ? undefined : routerBase}>
           <Routes>
             <Route 
               path="/" 

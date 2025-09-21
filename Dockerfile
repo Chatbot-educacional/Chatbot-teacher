@@ -1,9 +1,10 @@
 # Dockerfile para Chatbot-Teacher
-FROM node:18-alpine as builder
+FROM node:18-alpine AS builder
 
+# Configurações de build (ajustadas via build args no compose)
 ARG VITE_APP_BASE_PATH="/"
-ENV VITE_APP_BASE_PATH=${VITE_APP_BASE_PATH}
 ARG VITE_POCKETBASE_URL="http://127.0.0.1:8090"
+ENV VITE_APP_BASE_PATH=${VITE_APP_BASE_PATH}
 ENV VITE_POCKETBASE_URL=${VITE_POCKETBASE_URL}
 
 WORKDIR /app
@@ -22,6 +23,9 @@ COPY . .
 
 # Build da aplicação
 RUN npm run build
+
+# Garante que o build foi gerado
+RUN test -d dist
 
 # Estágio de produção
 FROM nginx:alpine
