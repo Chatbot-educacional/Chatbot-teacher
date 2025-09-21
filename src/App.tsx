@@ -14,7 +14,10 @@ const queryClient = new QueryClient();
 const resolveRouterBase = () => {
   const configured = import.meta.env.VITE_APP_BASE_PATH;
   const fallback = import.meta.env.DEV ? "/" : "/teacher";
-  const value = configured ?? fallback;
+  const runtimeBase = typeof window !== "undefined" && window.location.pathname.startsWith("/teacher")
+    ? "/teacher"
+    : undefined;
+  const value = configured ?? runtimeBase ?? fallback;
 
   if (!value || value === "/") {
     return "/";
