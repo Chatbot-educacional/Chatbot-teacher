@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  chatbot-teacher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Configurar para apontar para o CoderBot-v2 em produção
+        VITE_POCKETBASE_URL: ${VITE_POCKETBASE_URL:-http://localhost:8090}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        NODE_ENV: production
+    container_name: chatbot-teacher
+    # Expor porta 3000 para debug/teste direto
+    ports:
+      - "3000:3000"
+    environment:
+      # URLs para conectar ao CoderBot-v2
+      - VITE_POCKETBASE_URL=${VITE_POCKETBASE_URL:-http://localhost:8090}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - chatbot-teacher-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  chatbot-teacher-network:
+    driver: bridge
