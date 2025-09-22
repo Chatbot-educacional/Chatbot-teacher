@@ -1,6 +1,7 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { pb, UserRecord, getCurrentUser, isAuthenticated, logout, onAuthChange } from '@/lib/pocketbase';
+import { captureEvent, identifyUser, resetPosthog } from '@/lib/analytics';
 
 interface AuthContextType {
   user: UserRecord | null;
@@ -51,11 +52,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (user) {
+      identifyUser(user.id, {
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      });
+      captureEvent('teacher_user_authenticated', {
+        role: user.role,
+      });
+      return;
+    }
+
+    resetPosthog();
+    captureEvent('teacher_user_signed_out');
+  }, [user, isLoading]);
+
   const handleLogin = async (email: string, password: string) => {
     try {
       const authData = await pb.collection('users').authWithPassword(email, password);
       setUser(authData.record as UserRecord);
+      captureEvent('teacher_login_success', {
+        role: (authData.record as UserRecord)?.role,
+      });
     } catch (error) {
+      captureEvent('teacher_login_error');
       throw error;
     }
   };
@@ -78,7 +104,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: data.name,
         role: data.role,
       });
+      captureEvent('teacher_register_success', { role: data.role });
     } catch (error) {
+      captureEvent('teacher_register_error', { role: data.role });
       throw error;
     }
   };
@@ -86,6 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const handleLogout = () => {
     logout();
     setUser(null);
+    captureEvent('teacher_logout');
   };
 
   const value: AuthContextType = {
