@@ -185,7 +185,8 @@ export const listTeachingClasses = async (): Promise<ClassRecord[]> => {
     const records = await pb.collection('classes').getFullList({
       filter: `createdBy = "${user.id}"`,
       sort: '-created',
-    });
+      requestKey: `list_classes_${user.id}_${Date.now()}`,
+    } as any);
     return records as ClassRecord[];
   } catch (error) {
     console.error('Erro ao listar turmas:', error);
@@ -264,11 +265,41 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
  */
 export const listClassMembers = async (classId: string): Promise<any[]> => {
   try {
+    // Buscar membros com requestKey único para evitar auto-cancel
     const members = await pb.collection('class_members').getFullList({
       filter: `class = "${classId}"`,
       expand: 'user',
-    });
-    return members;
+      requestKey: `members_${classId}_${Date.now()}`,
+    } as any);
+    
+    // Se o expand não funcionou, buscar usuários manualmente
+    const membersWithUsers = await Promise.all(
+      members.map(async (member: any) => {
+        if (!member.expand?.user && member.user) {
+          try {
+            const user = await pb.collection('users').getOne(member.user, {
+              requestKey: `user_${member.user}_${Date.now()}`,
+            } as any);
+            return {
+              ...member,
+              expand: {
+                user: {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                }
+              }
+            };
+          } catch (err) {
+            console.warn('Não foi possível buscar dados do usuário:', err);
+            return member;
+          }
+        }
+        return member;
+      })
+    );
+    
+    return membersWithUsers;
   } catch (error) {
     console.error('Erro ao listar membros da turma:', error);
     return [];
@@ -316,7 +347,8 @@ export const searchUsers = async (query: string): Promise<UserRecord[]> => {
 
     const records = await pb.collection('users').getList(1, 10, {
       filter: `email ~ "${query}" || name ~ "${query}"`,
-    });
+      requestKey: `search_users_${Date.now()}`,
+    } as any);
 
     return records.items as UserRecord[];
   } catch (error) {
