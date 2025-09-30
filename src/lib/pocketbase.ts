@@ -128,10 +128,10 @@ export const onAuthChange = (callback: (token: string, model: UserRecord | null)
 // --- Tipos de dados para Classes ---
 
 export interface ClassRecord extends PBRecord {
-  title: string;
+  title?: string;
   name: string;
   description?: string;
-  teacher?: string;
+  createdBy?: string;
   code?: string;
 }
 
@@ -153,10 +153,9 @@ export const createClass = async (title: string, description?: string): Promise<
   }
 
   const record = await pb.collection('classes').create({
-    title,
     name: title,
     description: description || '',
-    teacher: user.id,
+    createdBy: user.id,
   });
 
   // Adiciona o professor como membro da turma
@@ -184,7 +183,7 @@ export const listTeachingClasses = async (): Promise<ClassRecord[]> => {
 
   try {
     const records = await pb.collection('classes').getFullList({
-      filter: `teacher = "${user.id}"`,
+      filter: `createdBy = "${user.id}"`,
       sort: '-created',
     });
     return records as ClassRecord[];
@@ -236,7 +235,6 @@ export const updateClass = async (classId: string, data: { title?: string; descr
   const updateData: any = {};
   
   if (data.title) {
-    updateData.title = data.title;
     updateData.name = data.title;
   }
   

@@ -36,7 +36,7 @@ export function ClassManagement() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   
-  const [newClass, setNewClass] = useState({ title: "", description: "" });
+  const [newClass, setNewClass] = useState({ name: "", description: "" });
   const [editClass, setEditClass] = useState<ClassWithMembers | null>(null);
   const [deleteClass_selected, setDeleteClass_selected] = useState<ClassWithMembers | null>(null);
   const [selectedClassForMembers, setSelectedClassForMembers] = useState<ClassWithMembers | null>(null);
@@ -77,15 +77,15 @@ export function ClassManagement() {
   };
 
   const handleCreateClass = async () => {
-    if (!newClass.title.trim()) {
+    if (!newClass.name.trim()) {
       toast.warning("Por favor, informe o nome da turma");
       return;
     }
 
     try {
-      await createClass(newClass.title, newClass.description);
+      await createClass(newClass.name, newClass.description);
       toast.success("Turma criada com sucesso!");
-      setNewClass({ title: "", description: "" });
+      setNewClass({ name: "", description: "" });
       setCreateOpen(false);
       await loadClasses();
     } catch (error: any) {
@@ -99,7 +99,7 @@ export function ClassManagement() {
 
     try {
       await updateClass(editClass.id, {
-        title: editClass.title,
+        title: editClass.name,
         description: editClass.description,
       });
       toast.success("Turma atualizada com sucesso!");
@@ -256,12 +256,12 @@ export function ClassManagement() {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="title">Nome da Turma *</Label>
+                    <Label htmlFor="name">Nome da Turma *</Label>
                     <Input
-                      id="title"
+                      id="name"
                       placeholder="Ex: Programação 2024"
-                      value={newClass.title}
-                      onChange={(e) => setNewClass({ ...newClass, title: e.target.value })}
+                      value={newClass.name}
+                      onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -310,7 +310,7 @@ export function ClassManagement() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="space-y-1 flex-1">
-                      <CardTitle className="text-xl">{classItem.title}</CardTitle>
+                      <CardTitle className="text-xl">{classItem.name}</CardTitle>
                       <CardDescription className="line-clamp-2">
                         {classItem.description || "Sem descrição"}
                       </CardDescription>
@@ -366,11 +366,11 @@ export function ClassManagement() {
             {editClass && (
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-title">Nome da Turma</Label>
+                  <Label htmlFor="edit-name">Nome da Turma</Label>
                   <Input
-                    id="edit-title"
-                    value={editClass.title}
-                    onChange={(e) => setEditClass({ ...editClass, title: e.target.value })}
+                    id="edit-name"
+                    value={editClass.name}
+                    onChange={(e) => setEditClass({ ...editClass, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -407,7 +407,7 @@ export function ClassManagement() {
             <div className="py-4">
               <p className="text-sm">
                 Tem certeza que deseja excluir a turma{" "}
-                <span className="font-semibold">{deleteClass_selected?.title}</span>?
+                <span className="font-semibold">{deleteClass_selected?.name}</span>?
               </p>
             </div>
             <DialogFooter>
@@ -426,7 +426,7 @@ export function ClassManagement() {
           <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                Membros - {selectedClassForMembers?.title}
+                Membros - {selectedClassForMembers?.name}
               </DialogTitle>
               <DialogDescription>
                 Gerencie os membros desta turma
