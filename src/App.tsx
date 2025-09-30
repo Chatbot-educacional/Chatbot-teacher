@@ -1,13 +1,16 @@
+import { useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import PrivateRoute from "./components/dashboard/PrivateRoute";
+import { captureEvent, initPosthog } from "@/lib/analytics";
+import { ClassManagement } from "./components/dashboard/ClassManagement";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +37,48 @@ const resolveRouterBase = () => {
 
 const routerBase = resolveRouterBase();
 
+const PosthogManager = () => {
+  const location = useLocation();
+  const initializedRef = useRef(false);
+  const loggedMissingKeyRef = useRef(false);
+  const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
+  const posthogHost = import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
+
+  useEffect(() => {
+    if (!posthogKey) {
+      if (!loggedMissingKeyRef.current) {
+        console.info("[PostHog] Key not provided. Analytics disabled for teacher module.");
+        loggedMissingKeyRef.current = true;
+      }
+      return;
+    }
+
+    if (initializedRef.current) {
+      return;
+    }
+
+    initializedRef.current = true;
+
+    initPosthog(posthogKey, posthogHost)
+      .then(() => {
+        captureEvent("$pageview", { path: location.pathname });
+      })
+      .catch((error) => {
+        console.debug("[PostHog] Initialization failed", error);
+      });
+  }, [posthogKey, posthogHost, location.pathname]);
+
+  useEffect(() => {
+    if (!posthogKey) {
+      return;
+    }
+
+    captureEvent("$pageview", { path: location.pathname });
+  }, [location.pathname, posthogKey]);
+
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -41,12 +86,21 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter basename={routerBase === "/" ? undefined : routerBase}>
+          <PosthogManager />
           <Routes>
             <Route 
               path="/" 
               element={
                 <ProtectedRoute requiredRole="teacher">
                   <Index />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/classes" 
+              element={
+                <ProtectedRoute requiredRole="teacher">
+                  <ClassManagement />
                 </ProtectedRoute>
               } 
             />

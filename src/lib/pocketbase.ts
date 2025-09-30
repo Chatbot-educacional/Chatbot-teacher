@@ -124,3 +124,205 @@ export const onAuthChange = (callback: (token: string, model: UserRecord | null)
     callback(token, model as UserRecord | null);
   });
 };
+
+// --- Tipos de dados para Classes ---
+
+export interface ClassRecord extends PBRecord {
+  title: string;
+  name: string;
+  description?: string;
+  teacher?: string;
+  code?: string;
+}
+
+export interface ClassMemberRecord extends PBRecord {
+  class: string;
+  user: string;
+  role: string;
+}
+
+// --- Gerenciamento de Turmas/Classes ---
+
+/**
+ * Cria uma nova turma
+ */
+export const createClass = async (title: string, description?: string): Promise<ClassRecord> => {
+  const user = getCurrentUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  const record = await pb.collection('classes').create({
+    title,
+    name: title,
+    description: description || '',
+    teacher: user.id,
+  });
+
+  // Adiciona o professor como membro da turma
+  try {
+    await pb.collection('class_members').create({
+      class: record.id,
+      user: user.id,
+      role: 'teacher',
+    });
+  } catch (error) {
+    console.error('Erro ao adicionar professor como membro:', error);
+  }
+
+  return record as ClassRecord;
+};
+
+/**
+ * Lista as turmas do professor logado
+ */
+export const listTeachingClasses = async (): Promise<ClassRecord[]> => {
+  const user = getCurrentUser();
+  if (!user) {
+    return [];
+  }
+
+  try {
+    const records = await pb.collection('classes').getFullList({
+      filter: `teacher = "${user.id}"`,
+      sort: '-created',
+    });
+    return records as ClassRecord[];
+  } catch (error) {
+    console.error('Erro ao listar turmas:', error);
+    return [];
+  }
+};
+
+/**
+ * Lista todas as turmas que o usuário participa (como aluno ou professor)
+ */
+export const listMyClasses = async (): Promise<ClassRecord[]> => {
+  const user = getCurrentUser();
+  if (!user) {
+    return [];
+  }
+
+  try {
+    const memberships = await pb.collection('class_members').getFullList({
+      filter: `user = "${user.id}"`,
+      expand: 'class',
+    });
+
+    return memberships.map((m: any) => m.expand?.class).filter(Boolean) as ClassRecord[];
+  } catch (error) {
+    console.error('Erro ao listar minhas turmas:', error);
+    return [];
+  }
+};
+
+/**
+ * Obtém detalhes de uma turma específica
+ */
+export const getClassDetails = async (classId: string): Promise<ClassRecord | null> => {
+  try {
+    const record = await pb.collection('classes').getOne(classId);
+    return record as ClassRecord;
+  } catch (error) {
+    console.error('Erro ao obter detalhes da turma:', error);
+    return null;
+  }
+};
+
+/**
+ * Atualiza uma turma
+ */
+export const updateClass = async (classId: string, data: { title?: string; description?: string }): Promise<ClassRecord> => {
+  const updateData: any = {};
+  
+  if (data.title) {
+    updateData.title = data.title;
+    updateData.name = data.title;
+  }
+  
+  if (data.description !== undefined) {
+    updateData.description = data.description;
+  }
+
+  const record = await pb.collection('classes').update(classId, updateData);
+  return record as ClassRecord;
+};
+
+/**
+ * Deleta uma turma
+ */
+export const deleteClass = async (classId: string): Promise<boolean> => {
+  try {
+    await pb.collection('classes').delete(classId);
+    return true;
+  } catch (error) {
+    console.error('Erro ao deletar turma:', error);
+    return false;
+  }
+};
+
+/**
+ * Lista os membros de uma turma
+ */
+export const listClassMembers = async (classId: string): Promise<any[]> => {
+  try {
+    const members = await pb.collection('class_members').getFullList({
+      filter: `class = "${classId}"`,
+      expand: 'user',
+    });
+    return members;
+  } catch (error) {
+    console.error('Erro ao listar membros da turma:', error);
+    return [];
+  }
+};
+
+/**
+ * Adiciona um membro à turma
+ */
+export const addClassMember = async (classId: string, userId: string, role: string = 'student'): Promise<boolean> => {
+  try {
+    await pb.collection('class_members').create({
+      class: classId,
+      user: userId,
+      role,
+    });
+    return true;
+  } catch (error) {
+    console.error('Erro ao adicionar membro:', error);
+    return false;
+  }
+};
+
+/**
+ * Remove um membro da turma
+ */
+export const removeClassMember = async (memberId: string): Promise<boolean> => {
+  try {
+    await pb.collection('class_members').delete(memberId);
+    return true;
+  } catch (error) {
+    console.error('Erro ao remover membro:', error);
+    return false;
+  }
+};
+
+/**
+ * Busca usuários por email ou nome
+ */
+export const searchUsers = async (query: string): Promise<UserRecord[]> => {
+  try {
+    if (!query.trim()) {
+      return [];
+    }
+
+    const records = await pb.collection('users').getList(1, 10, {
+      filter: `email ~ "${query}" || name ~ "${query}"`,
+    });
+
+    return records.items as UserRecord[];
+  } catch (error) {
+    console.error('Erro ao buscar usuários:', error);
+    return [];
+  }
+};
