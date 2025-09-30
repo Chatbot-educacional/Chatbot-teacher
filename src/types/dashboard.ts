@@ -15,7 +15,7 @@ export interface Class {
 }
 
 export interface QuestionLevel {
-  level: 'básico' | 'intermediário' | 'avançado';
+  level: "básico" | "intermediário" | "avançado";
   correct: number;
   incorrect: number;
   total: number;
@@ -48,11 +48,14 @@ export interface StudentAnalytics {
   forumInteractions: ForumInteraction;
   difficultTopics: string[];
   lastActivity: string;
+  totalLogins: number; // NOVO
+  totalChatStarts: number; // NOVO
+  ultimaAtividade: string | "N/A"; // NOVO
 }
 
 export interface FilterOptions {
   selectedClass: string;
   selectedSubject: string;
-  sortBy: 'accuracy' | 'participation' | 'difficulty' | 'time';
-  sortOrder: 'desc' | 'asc';
+  sortBy: "accuracy" | "participation" | "difficulty" | "time";
+  sortOrder: "desc" | "asc";
 }

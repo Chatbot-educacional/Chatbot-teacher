@@ -1,5 +1,6 @@
 # Dockerfile para Chatbot-Teacher
-FROM node:18-alpine AS builder
+
+FROM node:20-alpine AS builder
 
 # Configurações de build (ajustadas via build args no compose)
 ARG VITE_APP_BASE_PATH="/"
@@ -18,15 +19,26 @@ RUN apk add --no-cache curl
 
 # Copiar package.json e package-lock.json
 COPY package*.json ./
+COPY bun.lockb* ./
 
-# Instalar dependências
-RUN npm ci --only=production
+# Instalar bun e dependências
+RUN npm install -g bun
+RUN if [ -f "bun.lockb" ]; then bun install; else npm ci; fi
 
 # Copiar código fonte
 COPY . .
 
+# Definir variáveis de ambiente para build (podem ser sobrescritas via args)
+ARG VITE_POCKETBASE_URL=http://localhost:8090
+ARG VITE_API_URL=http://localhost:8000
+ARG NODE_ENV=production
+
+ENV VITE_POCKETBASE_URL=${VITE_POCKETBASE_URL}
+ENV VITE_API_URL=${VITE_API_URL}
+ENV NODE_ENV=${NODE_ENV}
+
 # Build da aplicação
-RUN npm run build
+RUN if [ -f "bun.lockb" ]; then bun run build; else npm run build; fi
 
 # Garante que o build foi gerado
 RUN test -d dist
