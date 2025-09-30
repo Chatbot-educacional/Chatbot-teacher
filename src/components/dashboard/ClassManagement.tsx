@@ -56,16 +56,25 @@ export function ClassManagement() {
     try {
       const data = await listTeachingClasses();
       
-      // Carregar contagem de membros para cada turma
-      const classesWithCounts = await Promise.all(
-        data.map(async (classItem) => {
+      // Carregar contagem de membros sequencialmente para evitar auto-cancel
+      const classesWithCounts: ClassWithMembers[] = [];
+      for (const classItem of data) {
+        try {
           const members = await listClassMembers(classItem.id);
-          return {
+          classesWithCounts.push({
             ...classItem,
             memberCount: members.length,
-          };
-        })
-      );
+          });
+        } catch (error) {
+          console.warn(`Erro ao carregar membros da turma ${classItem.id}:`, error);
+          classesWithCounts.push({
+            ...classItem,
+            memberCount: 0,
+          });
+        }
+        // Pequeno delay para evitar sobrecarregar
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
       
       setClasses(classesWithCounts);
     } catch (error) {
@@ -180,10 +189,25 @@ export function ClassManagement() {
       setSearchQuery("");
       setSearchResults([]);
       
-      // Recarregar membros
+      // Aguardar um pouco antes de recarregar
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Recarregar membros da turma atual
       const membersData = await listClassMembers(selectedClassForMembers.id);
       setMembers(membersData);
-      await loadClasses();
+      
+      // Atualizar a contagem local sem recarregar todas as turmas
+      setClasses(prev => prev.map(c => 
+        c.id === selectedClassForMembers.id 
+          ? { ...c, memberCount: membersData.length }
+          : c
+      ));
+      
+      // Atualizar selectedClassForMembers
+      setSelectedClassForMembers(prev => prev ? {
+        ...prev,
+        memberCount: membersData.length
+      } : null);
     } catch (error) {
       console.error('Erro ao adicionar membro:', error);
       toast.error("Erro ao adicionar membro");
@@ -191,16 +215,31 @@ export function ClassManagement() {
   };
 
   const handleRemoveMember = async (memberId: string) => {
+    if (!selectedClassForMembers) return;
+    
     try {
       await removeClassMember(memberId);
       toast.success("Membro removido com sucesso!");
       
-      // Recarregar membros
-      if (selectedClassForMembers) {
-        const membersData = await listClassMembers(selectedClassForMembers.id);
-        setMembers(membersData);
-        await loadClasses();
-      }
+      // Aguardar um pouco antes de recarregar
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Recarregar membros da turma atual
+      const membersData = await listClassMembers(selectedClassForMembers.id);
+      setMembers(membersData);
+      
+      // Atualizar a contagem local sem recarregar todas as turmas
+      setClasses(prev => prev.map(c => 
+        c.id === selectedClassForMembers.id 
+          ? { ...c, memberCount: membersData.length }
+          : c
+      ));
+      
+      // Atualizar selectedClassForMembers
+      setSelectedClassForMembers(prev => prev ? {
+        ...prev,
+        memberCount: membersData.length
+      } : null);
     } catch (error) {
       console.error('Erro ao remover membro:', error);
       toast.error("Erro ao remover membro");
