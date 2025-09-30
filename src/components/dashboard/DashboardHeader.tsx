@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, Filter } from "lucide-react";
+import { LogOut, Filter, School } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -10,11 +10,13 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export function DashboardHeader() {
   const [selectedLanguage, setSelectedLanguage] = useState("all");
   const [selectedPeriod, setSelectedPeriod] = useState("7");
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
@@ -28,19 +30,26 @@ export function DashboardHeader() {
             <h1 className="text-2xl font-bold">{user?.name || 'Professor'}</h1>
             <p className="text-primary-foreground/80">{user?.role === 'teacher' ? 'Dashboard do Professor' : 'Dashboard'}</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            onClick={handleLogout}
-
-          >
-            <LogOut
-              className="h-4 w-4 mr-2"
-        
-            />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              onClick={() => navigate('/classes')}
+            >
+              <School className="h-4 w-4 mr-2" />
+              Gerenciar Turmas
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Filters Row */}

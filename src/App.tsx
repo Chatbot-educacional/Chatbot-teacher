@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import PrivateRoute from "./components/dashboard/PrivateRoute";
 import { captureEvent, initPosthog } from "@/lib/analytics";
+import { ClassManagement } from "./components/dashboard/ClassManagement";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +93,14 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="teacher">
                   <Index />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/classes" 
+              element={
+                <ProtectedRoute requiredRole="teacher">
+                  <ClassManagement />
                 </ProtectedRoute>
               } 
             />
