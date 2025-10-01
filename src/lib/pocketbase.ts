@@ -23,28 +23,6 @@ const resolvePocketBaseUrl = () => {
 };
 
 const POCKETBASE_URL = resolvePocketBaseUrl();
-const resolvePocketBaseUrl = () => {
-  const envValue = import.meta.env.VITE_POCKETBASE_URL;
-
-  if (envValue) {
-    if (/^https?:\/\//i.test(envValue)) {
-      return envValue;
-    }
-
-    if (typeof window !== "undefined") {
-      const prefix = envValue.startsWith("/") ? "" : "/";
-      return `${window.location.origin}${prefix}${envValue}`;
-    }
-  }
-
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}/pb`;
-  }
-
-  return "http://127.0.0.1:8090";
-};
-
-const POCKETBASE_URL = resolvePocketBaseUrl();
 
 export const pb = new PocketBase(POCKETBASE_URL);
 
