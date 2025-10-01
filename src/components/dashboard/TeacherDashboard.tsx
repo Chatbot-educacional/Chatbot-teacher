@@ -10,6 +10,8 @@ import { ActionButtons } from "./ActionButtons";
 import { AnnouncementsPanel } from "./AnnouncementsPanel";
 import { ClassSelector } from "./ClassSelector";
 import { SubjectFilter } from "./SubjectFilter";
+import ClassAnalytics from "../analytics/ClassAnalytics";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockClasses, mockSubjects, mockStudentAnalytics } from "@/data/mockData";
 import { FilterOptions, StudentAnalytics } from "@/types/dashboard";
 
@@ -109,68 +111,115 @@ export function TeacherDashboard() {
 
       {/* Main Content */}
       <div className="p-6 space-y-6">
-        {/* Class and Subject Filters */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ClassSelector 
-            classes={mockClasses}
-            selectedClass={filters.selectedClass}
-            onClassChange={handleClassChange}
-          />
-          <SubjectFilter 
-            subjects={mockSubjects}
-            selectedSubject={filters.selectedSubject}
-            sortBy={filters.sortBy}
-            sortOrder={filters.sortOrder}
-            onSubjectChange={handleSubjectChange}
-            onSortChange={handleSortChange}
-            onSortOrderToggle={handleSortOrderToggle}
-          />
-        </div>
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="students">Alunos</TabsTrigger>
+          </TabsList>
 
-        {/* Summary Cards */}
-        <SummaryCards 
-          students={filteredStudents}
-          selectedSubject={filters.selectedSubject}
-          subjects={mockSubjects}
-        />
+          <TabsContent value="overview" className="space-y-6">
+            {/* Class and Subject Filters */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <ClassSelector
+                classes={mockClasses}
+                selectedClass={filters.selectedClass}
+                onClassChange={handleClassChange}
+              />
+              <SubjectFilter
+                subjects={mockSubjects}
+                selectedSubject={filters.selectedSubject}
+                sortBy={filters.sortBy}
+                sortOrder={filters.sortOrder}
+                onSubjectChange={handleSubjectChange}
+                onSortChange={handleSortChange}
+                onSortOrderToggle={handleSortOrderToggle}
+              />
+            </div>
 
-        {/* Charts and Tables Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Performance Chart - Takes 2 columns */}
-          <div className="lg:col-span-2">
-            <PerformanceChart 
+            {/* Summary Cards */}
+            <SummaryCards
               students={filteredStudents}
               selectedSubject={filters.selectedSubject}
               subjects={mockSubjects}
             />
-          </div>
-          
-          {/* Difficult Topics - Takes 1 column */}
-          <div className="lg:col-span-1">
-            <DifficultTopics 
+
+            {/* Charts and Tables Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Performance Chart - Takes 2 columns */}
+              <div className="lg:col-span-2">
+                <PerformanceChart
+                  students={filteredStudents}
+                  selectedSubject={filters.selectedSubject}
+                  subjects={mockSubjects}
+                />
+              </div>
+
+              {/* Difficult Topics - Takes 1 column */}
+              <div className="lg:col-span-1">
+                <DifficultTopics
+                  students={filteredStudents}
+                  selectedSubject={filters.selectedSubject}
+                  subjects={mockSubjects}
+                />
+              </div>
+            </div>
+
+            {/* Announcements Panel */}
+            <AnnouncementsPanel />
+
+            {/* Bottom Row - Chat and Actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChatPanel />
+              <ActionButtons />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-6">
+            {/* Class and Subject Filters for Analytics */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <ClassSelector
+                classes={mockClasses}
+                selectedClass={filters.selectedClass}
+                onClassChange={handleClassChange}
+              />
+              <div className="flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">
+                  Selecione uma turma para ver os dados de analytics
+                </p>
+              </div>
+            </div>
+
+            {/* Class Analytics Component */}
+            {filters.selectedClass !== "all" && (
+              <ClassAnalytics
+                classId={filters.selectedClass}
+                className={mockClasses.find(c => c.id === filters.selectedClass)?.name}
+              />
+            )}
+
+            {filters.selectedClass === "all" && (
+              <div className="flex items-center justify-center h-[400px] border-2 border-dashed border-muted-foreground/25 rounded-lg">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold mb-2">Selecione uma turma</h3>
+                  <p className="text-muted-foreground">
+                    Escolha uma turma específica para visualizar os dados de analytics detalhados
+                  </p>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="students" className="space-y-6">
+            {/* Enhanced Students Table */}
+            <EnhancedStudentsTable
               students={filteredStudents}
-              selectedSubject={filters.selectedSubject}
               subjects={mockSubjects}
+              selectedSubject={filters.selectedSubject}
+              onStudentClick={handleStudentClick}
             />
-          </div>
-        </div>
-
-        {/* Enhanced Students Table */}
-        <EnhancedStudentsTable 
-          students={filteredStudents}
-          subjects={mockSubjects}
-          selectedSubject={filters.selectedSubject}
-          onStudentClick={handleStudentClick}
-        />
-
-        {/* Announcements Panel */}
-        <AnnouncementsPanel />
-
-        {/* Bottom Row - Chat and Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChatPanel />
-          <ActionButtons />
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Enhanced Student Details Modal */}

@@ -25,7 +25,8 @@ import {
   List,
   Copy,
   TrendingUp,
-  Clock
+  Clock,
+  MessageSquare
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -867,13 +868,22 @@ export function ClassManagement() {
                     </CardContent>
                     <CardFooter className="flex gap-2">
                       <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => window.open(`https://coderbot.space/class/${classItem.id}`, '_blank')}
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Fórum
+                      </Button>
+                      <Button
                         variant="outline"
                         size="sm"
                         className="flex-1"
                         onClick={() => openMembersDialog(classItem)}
                       >
                         <Eye className="mr-2 h-4 w-4" />
-                        Gerenciar membros
+                        Membros
                       </Button>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -964,6 +974,19 @@ export function ClassManagement() {
                         <TableCell>{formatDate(classItem.updated)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => window.open(`https://coderbot.space/class/${classItem.id}`, '_blank')}
+                                  aria-label="Acessar fórum"
+                                >
+                                  <MessageSquare className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Fórum</TooltipContent>
+                            </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
