@@ -204,20 +204,6 @@ export function ClassManagement() {
 
   const isFilteringClasses = Boolean(searchTerm.trim()) || memberCountFilter !== "all" || sortOption !== "recent";
 
-  useEffect(() => {
-    loadClasses();
-  }, [loadClasses]);
-
-  useEffect(() => {
-    if (!membersOpen) {
-      setMemberSearchTerm("");
-      setMemberRoleFilter("all");
-      setSearchQuery("");
-      setSearchResults([]);
-      setNewMemberRole("student");
-    }
-  }, [membersOpen]);
-
   const loadClasses = useCallback(async () => {
     setLoading(true);
     try {
@@ -251,6 +237,20 @@ export function ClassManagement() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    loadClasses();
+  }, [loadClasses]);
+
+  useEffect(() => {
+    if (!membersOpen) {
+      setMemberSearchTerm("");
+      setMemberRoleFilter("all");
+      setSearchQuery("");
+      setSearchResults([]);
+      setNewMemberRole("student");
+    }
+  }, [membersOpen]);
 
   const handleCreateClass = async () => {
     if (!newClass.name.trim()) {
