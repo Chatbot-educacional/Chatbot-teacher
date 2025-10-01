@@ -421,42 +421,63 @@ export function ClassManagement() {
     setSortOption("recent");
   };
 
-  const exportClassesToCsv = () => {
-    if (!filteredClasses.length) {
-      toast.warning("Nenhuma turma para exportar com os filtros atuais");
-      return;
-    }
-
+  const exportClassToCsv = async (classItem: ClassWithMembers) => {
     try {
+      const membersList = await listClassMembers(classItem.id) as ClassMemberWithUser[];
       const escapeCell = (value: string) => value.replace(/"/g, '""');
-      const headers = ["Nome", "Descrição", "Membros", "Código", "Criada em", "Atualizada em"];
-      const rows = filteredClasses.map((item) => [
-        item.name || "",
-        (item.description || "").replace(/\r?\n/g, " "),
-        String(item.memberCount ?? 0),
-        item.code || "-",
-        formatDate(item.created),
-        formatDate(item.updated),
-      ]);
+      const normalizeText = (value: string) => value.replace(/\r?\n/g, ' ').trim();
 
-      const csvContent = [headers, ...rows]
+      const classInfoRows = [
+        ["Turma", classItem.name || "-"],
+        ["Descrição", normalizeText(classItem.description || "Sem descrição")],
+        ["Código", classItem.code || "-"],
+        ["Criada em", formatDate(classItem.created)],
+        ["Atualizada em", formatDate(classItem.updated)],
+        ["Total de membros", String(membersList.length)],
+      ];
+
+      const memberHeader = ["Nome", "Email", "Papel"];
+      const memberRows = membersList.length
+        ? membersList.map((member) => [
+            member.expand?.user?.name || "Sem nome",
+            member.expand?.user?.email || "-",
+            member.role === 'teacher' ? 'Professor' : 'Aluno',
+          ])
+        : [["Nenhum membro cadastrado", "", ""]];
+
+      const csvSections = [
+        ["Informações da turma"],
+        ...classInfoRows,
+        [],
+        memberHeader,
+        ...memberRows,
+      ];
+
+      const csvContent = csvSections
         .map((row) => row.map((cell) => `"${escapeCell(cell)}"`).join(";"))
         .join("\n");
+
+      const baseName = (classItem.name || 'turma')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/gi, '_')
+        .replace(/_{2,}/g, '_')
+        .replace(/^_|_$/g, '') || 'turma';
+      const fileName = `${baseName}_detalhes.csv`;
 
       const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `turmas_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success("Exportação concluída com sucesso");
+      toast.success(`Exportamos os dados de ${classItem.name || 'turma'} para CSV`);
     } catch (error) {
-      console.error('Erro ao exportar turmas:', error);
-      toast.error("Não foi possível exportar as turmas");
+      console.error('Erro ao exportar turma:', error);
+      toast.error('Não foi possível exportar esta turma');
     }
   };
 
@@ -515,7 +536,7 @@ export function ClassManagement() {
 
   return (
     <TooltipProvider delayDuration={120}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
         <div className="container mx-auto p-6 space-y-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
@@ -547,20 +568,6 @@ export function ClassManagement() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Atualizar lista</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={exportClassesToCsv}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Exportar CSV
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Exportar turmas com os filtros atuais</TooltipContent>
               </Tooltip>
               <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                 <DialogTrigger asChild>
@@ -611,7 +618,7 @@ export function ClassManagement() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Card className="supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-900/60">
+            <Card className="bg-white shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Turmas ativas</CardTitle>
                 <School className="h-5 w-5 text-primary" />
@@ -621,7 +628,7 @@ export function ClassManagement() {
                 <p className="text-xs text-muted-foreground">criadas por você</p>
               </CardContent>
             </Card>
-            <Card className="supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-900/60">
+            <Card className="bg-white shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Alunos inscritos</CardTitle>
                 <Users className="h-5 w-5 text-primary" />
@@ -631,7 +638,7 @@ export function ClassManagement() {
                 <p className="text-xs text-muted-foreground">total de membros nas suas turmas</p>
               </CardContent>
             </Card>
-            <Card className="supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-900/60">
+            <Card className="bg-white shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Engajamento médio</CardTitle>
                 <TrendingUp className="h-5 w-5 text-primary" />
@@ -650,7 +657,7 @@ export function ClassManagement() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-900/60">
+            <Card className="bg-white shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Turmas recentes</CardTitle>
                 <Clock className="h-5 w-5 text-primary" />
@@ -662,7 +669,7 @@ export function ClassManagement() {
             </Card>
           </div>
 
-          <Card className="supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-900/60">
+          <Card className="bg-white border shadow-sm dark:bg-slate-900 dark:border-slate-800">
             <CardContent className="space-y-4 pt-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                 <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
@@ -672,14 +679,14 @@ export function ClassManagement() {
                       placeholder="Buscar por nome, descrição ou código..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
+                      className="pl-9 bg-white border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800"
                     />
                   </div>
                   <Select
                     value={memberCountFilter}
                     onValueChange={(value) => setMemberCountFilter(value as MemberCountFilter)}
                   >
-                    <SelectTrigger className="w-full md:w-[200px]">
+                    <SelectTrigger className="w-full bg-white md:w-[200px] border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800">
                       <SelectValue placeholder="Qtd. de alunos" />
                     </SelectTrigger>
                     <SelectContent>
@@ -694,7 +701,7 @@ export function ClassManagement() {
                     value={sortOption}
                     onValueChange={(value) => setSortOption(value as SortOption)}
                   >
-                    <SelectTrigger className="w-full md:w-[200px]">
+                    <SelectTrigger className="w-full bg-white md:w-[200px] border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800">
                       <SelectValue placeholder="Ordenar por" />
                     </SelectTrigger>
                     <SelectContent>
@@ -762,8 +769,8 @@ export function ClassManagement() {
           </Card>
 
           {classes.length === 0 ? (
-            <Card className="border-dashed supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-900/60">
-              <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+            <Card className="border border-dashed border-slate-300 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center text-slate-700 dark:text-slate-200">
                 <School className="h-16 w-16 text-muted-foreground" />
                 <div>
                   <h3 className="text-xl font-semibold">Nenhuma turma encontrada</h3>
@@ -776,8 +783,8 @@ export function ClassManagement() {
               </CardContent>
             </Card>
           ) : filteredClasses.length === 0 ? (
-            <Card className="border-dashed supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-900/60">
-              <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <Card className="border border-dashed border-slate-300 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center text-slate-700 dark:text-slate-200">
                 <Search className="h-12 w-12 text-muted-foreground" />
                 <div>
                   <h3 className="text-lg font-semibold">Nenhum resultado</h3>
@@ -799,9 +806,12 @@ export function ClassManagement() {
                   : false;
 
                 return (
-                  <Card key={classItem.id} className="relative transition-shadow hover:shadow-lg">
+                  <Card
+                    key={classItem.id}
+                    className="relative border border-slate-200 bg-white transition-shadow hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
+                  >
                     {isNew && (
-                      <Badge className="absolute right-4 top-4" variant="default">
+                      <Badge className="absolute right-4 top-4" variant="secondary">
                         Novo
                       </Badge>
                     )}
@@ -809,7 +819,7 @@ export function ClassManagement() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
                           <CardTitle className="text-xl">{classItem.name}</CardTitle>
-                          <CardDescription className="line-clamp-2">
+                          <CardDescription className="line-clamp-2 text-slate-600 dark:text-slate-300">
                             {classItem.description || 'Sem descrição'}
                           </CardDescription>
                         </div>
@@ -834,17 +844,17 @@ export function ClassManagement() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground">
+                    <CardContent className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
                           <Users className="h-4 w-4" />
                           <span>{classItem.memberCount || 0} membros</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs">
                           Atualizada em {formatDate(classItem.updated)}
                         </span>
                       </div>
-                      <div className="rounded-md border bg-background/60 p-3 text-xs text-muted-foreground">
+                      <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-300">
                         <div className="flex items-center justify-between">
                           <span>Criada em</span>
                           <span className="font-medium text-foreground">{formatDate(classItem.created)}</span>
@@ -865,6 +875,19 @@ export function ClassManagement() {
                         <Eye className="mr-2 h-4 w-4" />
                         Gerenciar membros
                       </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => exportClassToCsv(classItem)}
+                            aria-label={`Exportar CSV da turma ${classItem.name}`}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Exportar CSV</TooltipContent>
+                      </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -897,7 +920,7 @@ export function ClassManagement() {
               })}
             </div>
           ) : (
-            <Card className="supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-900/60">
+            <Card className="bg-white border shadow-sm dark:bg-slate-900 dark:border-slate-800">
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
@@ -912,7 +935,7 @@ export function ClassManagement() {
                   </TableHeader>
                   <TableBody>
                     {filteredClasses.map((classItem) => (
-                      <TableRow key={classItem.id}>
+                      <TableRow key={classItem.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             <span className="font-semibold">{classItem.name}</span>
@@ -925,7 +948,7 @@ export function ClassManagement() {
                         <TableCell>
                           {classItem.code ? (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               className="gap-2"
                               onClick={() => handleCopyClassCode(classItem.code)}
@@ -953,6 +976,19 @@ export function ClassManagement() {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Membros</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => exportClassToCsv(classItem)}
+                                  aria-label="Exportar CSV"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Exportar CSV</TooltipContent>
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1076,6 +1112,7 @@ export function ClassManagement() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearchUsers()}
+                        className="bg-white border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800"
                       />
                       <Button onClick={handleSearchUsers} disabled={searching}>
                         {searching ? (
@@ -1089,7 +1126,7 @@ export function ClassManagement() {
                       value={newMemberRole}
                       onValueChange={(value) => setNewMemberRole(value as 'student' | 'teacher')}
                     >
-                      <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectTrigger className="w-full bg-white md:w-[200px] border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800">
                         <SelectValue placeholder="Adicionar como" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1140,14 +1177,14 @@ export function ClassManagement() {
                         placeholder="Filtrar por nome ou email"
                         value={memberSearchTerm}
                         onChange={(e) => setMemberSearchTerm(e.target.value)}
-                        className="pl-9"
+                        className="pl-9 bg-white border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800"
                       />
                     </div>
                     <Select
                       value={memberRoleFilter}
                       onValueChange={(value) => setMemberRoleFilter(value as MemberRoleFilter)}
                     >
-                      <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectTrigger className="w-full bg-white md:w-[200px] border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800">
                         <SelectValue placeholder="Filtrar por papel" />
                       </SelectTrigger>
                       <SelectContent>
