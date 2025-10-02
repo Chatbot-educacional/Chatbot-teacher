@@ -48,9 +48,6 @@ export interface StudentAnalytics {
   forumInteractions: ForumInteraction;
   difficultTopics: string[];
   lastActivity: string;
-  totalLogins: number; // NOVO
-  totalChatStarts: number; // NOVO
-  ultimaAtividade: string | "N/A"; // NOVO
 }
 
 export interface FilterOptions {

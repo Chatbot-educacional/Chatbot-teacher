@@ -8,7 +8,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import PrivateRoute from "./components/dashboard/PrivateRoute";
 import { captureEvent, initPosthog } from "@/lib/analytics";
 import { ClassManagement } from "./components/dashboard/ClassManagement";
 import { ThemeProvider } from "./contexts/ThemeContext";
