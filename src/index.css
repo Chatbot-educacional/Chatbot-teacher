@@ -2,88 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
+/* Design System - Light como padrão */
 @layer base {
   :root {
-    /* Dark Purple Theme - inspired by CodeBot interface */
-    --background: 0 0% 3.9%;
-    --foreground: 213 31% 91%;
+    /* Light Theme */
+    --background: 0 0% 100%; /* Branco */
+    --foreground: 0 0% 10%; /* Preto quase */
 
-    --card: 231 25% 12%;
-    --card-foreground: 213 31% 91%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
 
-    --popover: 231 25% 12%;
-    --popover-foreground: 213 31% 91%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
 
-    /* Primary: Purple */
+    /* Primary: Roxo */
     --primary: 263 70% 50%;
-    --primary-foreground: 213 31% 91%;
+    --primary-foreground: 0 0% 100%;
     --primary-light: 263 70% 85%;
 
-    /* Secondary: Dark Blue Gray */
-    --secondary: 230 25% 18%;
-    --secondary-foreground: 213 31% 91%;
+    /* Secondary: Cinza claro */
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 20%;
 
-    --muted: 230 25% 18%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 40%;
 
     --accent: 263 70% 50%;
-    --accent-foreground: 213 31% 91%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Success: Green */
+    /* Success: Verde */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
     --success-light: 142 76% 85%;
 
-    /* Warning: Orange */
+    /* Warning: Laranja */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 98%;
     --warning-light: 38 92% 85%;
 
-    /* Destructive: Red */
+    /* Destructive: Vermelho */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --destructive-light: 0 84% 85%;
 
     /* Interactive Elements */
-    --border: 230 25% 25%;
-    --input: 230 25% 15%;
+    --border: 0 0% 85%;
+    --input: 0 0% 95%;
     --ring: 263 70% 50%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(264, 83%, 2%), hsl(263, 80%, 4%));
-    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 46%));
-    --gradient-bg: linear-gradient(180deg, hsl(230 25% 8%), hsl(230 25% 10%));
+    --gradient-primary: linear-gradient(135deg, hsl(263 70% 60%), hsl(263 70% 50%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 46%), hsl(142 76% 36%));
+    --gradient-bg: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 96%));
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -2px hsl(0 0% 0% / 0.2);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.4), 0 4px 6px -4px hsl(0 0% 0% / 0.3);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
 
     --radius: 0.75rem;
 
-    --sidebar-background: 230 35% 5%;
-
-    --sidebar-foreground: 213 31% 91%;
-
+    /* Sidebar Light */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 10%;
     --sidebar-primary: 263 70% 50%;
-
-    --sidebar-primary-foreground: 213 31% 91%;
-
-    --sidebar-accent: 230 25% 15%;
-
-    --sidebar-accent-foreground: 213 31% 91%;
-
-    --sidebar-border: 230 25% 20%;
-
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 85%;
     --sidebar-ring: 263 70% 50%;
   }
 
+  /* Tema Dark (mantém como override) */
   .dark {
-   --background: 10 10% 3.9%;
+    --background: 10 10% 3.9%;
     --foreground: 0 0% 98%;
 
     --card: 0 0% 3.9%;
@@ -95,9 +87,6 @@ All colors MUST be HSL.
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 9%;
 
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
 
@@ -113,6 +102,7 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

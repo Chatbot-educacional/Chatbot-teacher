@@ -11,6 +11,8 @@ import NotFound from "./pages/NotFound";
 import PrivateRoute from "./components/dashboard/PrivateRoute";
 import { captureEvent, initPosthog } from "@/lib/analytics";
 import { ClassManagement } from "./components/dashboard/ClassManagement";
+import { ThemeProvider } from "./contexts/ThemeContext";
+
 
 const queryClient = new QueryClient();
 
@@ -82,35 +84,36 @@ const PosthogManager = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter basename={routerBase === "/" ? undefined : routerBase}>
-          <PosthogManager />
-          <Routes>
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute requiredRole="teacher">
-                  <Index />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/classes" 
-              element={
-                <ProtectedRoute requiredRole="teacher">
-                  <ClassManagement />
-                </ProtectedRoute>
-              } 
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ThemeProvider>  
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter basename={routerBase === "/" ? undefined : routerBase}>
+            <PosthogManager />
+            <Routes>
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute requiredRole="teacher">
+                    <Index />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/classes" 
+                element={
+                  <ProtectedRoute requiredRole="teacher">
+                    <ClassManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </AuthProvider>
-
   </QueryClientProvider>
 );
 
