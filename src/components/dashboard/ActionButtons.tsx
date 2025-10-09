@@ -1,6 +1,9 @@
-import { Mail, BookOpen, Download, FileText } from "lucide-react";
+import { Mail, BookOpen, Download, FileText, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -9,9 +12,29 @@ import { mockStudentAnalytics, mockSubjects } from "@/data/mockData";
 
 export function ActionButtons() {
   const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [emailData, setEmailData] = useState({
+    to: "",
+    subject: "",
+    message: "",
+  });
 
   const handleSendMessage = () => {
-    console.log("Enviando mensagem para alunos...");
+    setShowForm(!showForm);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setEmailData({ ...emailData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast({
+      title: "Mensagem pronta para envio!",
+      description: `E-mail para ${emailData.to} com assunto "${emailData.subject}"`,
+    });
+    setShowForm(false);
+    setEmailData({ to: "", subject: "", message: "" });
   };
 
   const handleSuggestRevision = () => {
@@ -21,16 +44,11 @@ export function ActionButtons() {
   const handleExportPDF = () => {
     try {
       const doc = new jsPDF();
-      
-      // Título do relatório
       doc.setFontSize(20);
       doc.text('Relatório de Desempenho dos Estudantes', 14, 22);
-      
-      // Data de geração
       doc.setFontSize(12);
       doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 35);
 
-      // Preparar dados para a tabela
       const tableData = mockStudentAnalytics.map(student => [
         student.name,
         `${student.overallAccuracy}%`,
@@ -39,29 +57,19 @@ export function ActionButtons() {
         student.difficultTopics.join(', ')
       ]);
 
-      // Adicionar tabela
       autoTable(doc, {
         head: [['Nome', 'Precisão Geral', 'Tempo Total', 'Participações Fórum', 'Tópicos Difíceis']],
         body: tableData,
         startY: 45,
-        styles: {
-          fontSize: 9,
-          cellPadding: 3,
-        },
-        headStyles: {
-          fillColor: [102, 51, 153], // Purple theme
-          textColor: [255, 255, 255],
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245],
-        },
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [102, 51, 153], textColor: [255, 255, 255] },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
       });
 
-      // Adicionar resumo por matéria
       let currentY = (doc as any).lastAutoTable.finalY + 20;
       doc.setFontSize(14);
       doc.text('Resumo por Matéria', 14, currentY);
-      
+
       const subjectSummary = mockSubjects
         .filter(subject => subject.id !== 'all')
         .map(subject => {
@@ -76,39 +84,21 @@ export function ActionButtons() {
         head: [['Matéria', 'Precisão Média', 'Total de Estudantes']],
         body: subjectSummary,
         startY: currentY + 10,
-        styles: {
-          fontSize: 10,
-          cellPadding: 4,
-        },
-        headStyles: {
-          fillColor: [102, 51, 153],
-          textColor: [255, 255, 255],
-        },
+        styles: { fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: [102, 51, 153], textColor: [255, 255, 255] },
       });
 
-      // Salvar PDF
       doc.save('relatorio-estudantes.pdf');
-      
-      toast({
-        title: "PDF Exportado",
-        description: "Relatório em PDF foi gerado com sucesso!",
-      });
+      toast({ title: "PDF Exportado", description: "Relatório em PDF foi gerado com sucesso!" });
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao gerar o relatório em PDF.",
-        variant: "destructive",
-      });
+      console.error(error);
+      toast({ title: "Erro", description: "Erro ao gerar o relatório em PDF.", variant: "destructive" });
     }
   };
 
   const handleExportExcel = () => {
     try {
-      // Criar workbook
       const workbook = XLSX.utils.book_new();
-      
-      // Aba 1: Dados gerais dos estudantes
       const studentsData = mockStudentAnalytics.map(student => ({
         'Nome': student.name,
         'Precisão Geral (%)': student.overallAccuracy,
@@ -123,7 +113,6 @@ export function ActionButtons() {
       const studentsSheet = XLSX.utils.json_to_sheet(studentsData);
       XLSX.utils.book_append_sheet(workbook, studentsSheet, 'Estudantes');
 
-      // Aba 2: Desempenho por matéria
       const subjectPerformanceData: any[] = [];
       mockStudentAnalytics.forEach(student => {
         student.subjectPerformances.forEach(perf => {
@@ -141,7 +130,6 @@ export function ActionButtons() {
       const subjectSheet = XLSX.utils.json_to_sheet(subjectPerformanceData);
       XLSX.utils.book_append_sheet(workbook, subjectSheet, 'Por Matéria');
 
-      // Aba 3: Análise por nível de dificuldade
       const levelAnalysisData: any[] = [];
       mockStudentAnalytics.forEach(student => {
         student.subjectPerformances.forEach(perf => {
@@ -162,20 +150,11 @@ export function ActionButtons() {
       const levelSheet = XLSX.utils.json_to_sheet(levelAnalysisData);
       XLSX.utils.book_append_sheet(workbook, levelSheet, 'Por Nível');
 
-      // Salvar arquivo
       XLSX.writeFile(workbook, 'relatorio-estudantes.xlsx');
-      
-      toast({
-        title: "Excel Exportado",
-        description: "Planilha foi gerada com sucesso!",
-      });
+      toast({ title: "Excel Exportado", description: "Planilha foi gerada com sucesso!" });
     } catch (error) {
-      console.error('Erro ao gerar Excel:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao gerar a planilha Excel.",
-        variant: "destructive",
-      });
+      console.error(error);
+      toast({ title: "Erro", description: "Erro ao gerar a planilha Excel.", variant: "destructive" });
     }
   };
 
@@ -233,6 +212,45 @@ export function ActionButtons() {
             </div>
           </Button>
         </div>
+
+        {/* Formulário de envio de e-mail */}
+        {showForm && (
+          <form
+            onSubmit={handleSubmit}
+            className="mt-6 p-4 border rounded-xl bg-accent/30 flex flex-col gap-3"
+          >
+            <h3 className="text-md font-semibold text-primary">Nova Mensagem</h3>
+            <Input
+              type="email"
+              name="to"
+              placeholder="E-mail do aluno"
+              value={emailData.to}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              type="text"
+              name="subject"
+              placeholder="Título do e-mail"
+              value={emailData.subject}
+              onChange={handleChange}
+              required
+            />
+            <Textarea
+              name="message"
+              placeholder="Escreva sua mensagem..."
+              value={emailData.message}
+              onChange={handleChange}
+              required
+            />
+            <div className="flex justify-end">
+              <Button type="submit" className="flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                Enviar
+              </Button>
+            </div>
+          </form>
+        )}
       </CardContent>
     </Card>
   );
