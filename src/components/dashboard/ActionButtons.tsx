@@ -1,6 +1,11 @@
-import { Mail, BookOpen, Download, FileText } from "lucide-react";
+import { useState } from "react";
+import { Mail, BookOpen, Download, FileText, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -9,9 +14,29 @@ import { mockStudentAnalytics, mockSubjects } from "@/data/mockData";
 
 export function ActionButtons() {
   const { toast } = useToast();
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [emailContent, setEmailContent] = useState("");
 
   const handleSendMessage = () => {
-    console.log("Enviando mensagem para alunos...");
+    if (!recipientEmail.trim() || !emailContent.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha o email e o conteúdo da mensagem.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Lógica para enviar email
+    toast({
+      title: "Mensagem enviada!",
+      description: `Email enviado para ${recipientEmail}`,
+    });
+    
+    setEmailDialogOpen(false);
+    setRecipientEmail("");
+    setEmailContent("");
   };
 
   const handleSuggestRevision = () => {
@@ -186,16 +211,56 @@ export function ActionButtons() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Button 
-            onClick={handleSendMessage}
-            className="flex items-center gap-2 h-auto py-3"
-          >
-            <Mail className="h-4 w-4" />
-            <div className="text-left">
-              <div className="font-medium">Enviar Mensagem</div>
-              <div className="text-xs opacity-80">Para todos os alunos</div>
-            </div>
-          </Button>
+          <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2 h-auto py-3">
+                <Mail className="h-4 w-4" />
+                <div className="text-left">
+                  <div className="font-medium">Enviar Mensagem</div>
+                  <div className="text-xs opacity-80">Para todos os alunos</div>
+                </div>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Enviar Mensagem</DialogTitle>
+                <DialogDescription>
+                  Preencha os campos abaixo para enviar um email
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email do destinatário</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="aluno@exemplo.com"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="content">Conteúdo da mensagem</Label>
+                  <Textarea
+                    id="content"
+                    placeholder="Digite o conteúdo do email..."
+                    value={emailContent}
+                    onChange={(e) => setEmailContent(e.target.value)}
+                    className="min-h-[150px]"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSendMessage}>
+                  <Send className="h-4 w-4 mr-2" />
+                  Enviar Email
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <Button 
             onClick={handleSuggestRevision}
