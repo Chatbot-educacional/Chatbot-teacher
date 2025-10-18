@@ -17,16 +17,16 @@ WORKDIR /app
 # Dependências úteis em build
 RUN apk add --no-cache curl
 
-# Copiar package.json e package-lock.json
-COPY package*.json ./
-COPY bun.lockb* ./
+# Copiar package.json e package-lock.json do frontend
+COPY front/package*.json ./
+COPY front/bun.lockb* ./
 
 # Instalar bun e dependências
 RUN npm install -g bun
 RUN if [ -f "bun.lockb" ]; then bun install; else npm ci; fi
 
-# Copiar código fonte
-COPY . .
+# Copiar código fonte do frontend
+COPY front/ .
 
 # Definir variáveis de ambiente para build (podem ser sobrescritas via args)
 ARG VITE_POCKETBASE_URL=http://localhost:8090
@@ -52,8 +52,8 @@ RUN apk add --no-cache curl
 # Copiar arquivos buildados
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copiar configuração do nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copiar configuração do nginx (já está em /app após COPY front/ .)
+COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expor porta 3000
 EXPOSE 3000
