@@ -1041,7 +1041,10 @@ export function ClassManagement() {
                         size="sm"
                         className="flex-1 bg-black text-white hover:bg-gray-800"
                         onClick={() =>
-                          window.open(`/atividades/${classItem.id}`, "_blank")
+                          window.open(
+                            `/atividades/${classItem.id}`,
+                            "_blank"
+                          )
                         }
                       >
                         <Book className="mr-2 h-4 w-4" />
