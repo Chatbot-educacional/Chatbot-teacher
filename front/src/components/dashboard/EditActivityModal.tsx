@@ -1,23 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { DialogFooter, DialogHeader } from "../ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Upload, Link2 } from "lucide-react";
+import { Upload, Link2 } from "lucide-react";
 import { pb } from "@/lib/pocketbase";
 
-
-export function EditActivityModal({ activity, onSave }) {
-  const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState(activity || {
+export function EditActivityModal({ open, onOpenChange, activity, onSave }) {
+  const [formData, setFormData] = useState({
     title: "",
     instructions: "",
     points: "",
@@ -25,6 +22,19 @@ export function EditActivityModal({ activity, onSave }) {
     topic: "",
     attachment: "",
   });
+
+  useEffect(() => {
+    if (activity) {
+      setFormData({
+        title: activity.title || "",
+        instructions: activity.description || "",
+        points: activity.points || "",
+        dueDate: activity.dueDate ? activity.dueDate.split("T")[0] : "",
+        topic: activity.topic || "",
+        attachment: activity.attachment || "",
+      });
+    }
+  }, [activity]);
 
   const handleEdit = async () => {
     if (!formData.title) {
@@ -37,13 +47,13 @@ export function EditActivityModal({ activity, onSave }) {
         title: formData.title,
         instructions: formData.instructions,
         points: Number(formData.points) || 0,
-        dueDate: formData.dueDate || null,
+        dueDate: formData.dueDate || null, // já em formato ISO
         topic: formData.topic,
         attachment: formData.attachment || "",
       });
 
-      onSave?.(updated); // envia o registro atualizado para atualizar a tabela
-      setOpen(false);
+      onSave?.(updated); // recarrega lista
+      onOpenChange(false);
     } catch (error) {
       console.error("Erro ao atualizar atividade:", error);
       alert("Não foi possível salvar as alterações.");
@@ -51,17 +61,7 @@ export function EditActivityModal({ activity, onSave }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="hover:bg-gray-100 dark:hover:bg-slate-800"
-        >
-          <Edit className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Editar Atividade</DialogTitle>
@@ -72,12 +72,10 @@ export function EditActivityModal({ activity, onSave }) {
         </DialogHeader>
 
         <div className="space-y-5 py-4">
-          {/* Título */}
           <div className="space-y-2">
             <Label htmlFor="title">Título *</Label>
             <Input
               id="title"
-              placeholder="Ex: Projeto Arduino com sensores"
               value={formData.title}
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
@@ -85,12 +83,10 @@ export function EditActivityModal({ activity, onSave }) {
             />
           </div>
 
-          {/* Instruções */}
           <div className="space-y-2">
             <Label htmlFor="instructions">Instruções</Label>
             <Textarea
               id="instructions"
-              placeholder="Descreva as orientações e critérios de avaliação"
               value={formData.instructions}
               onChange={(e) =>
                 setFormData({ ...formData, instructions: e.target.value })
@@ -99,14 +95,12 @@ export function EditActivityModal({ activity, onSave }) {
             />
           </div>
 
-          {/* Pontuação e Data de Entrega */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="points">Pontuação</Label>
               <Input
                 id="points"
                 type="number"
-                placeholder="100"
                 value={formData.points}
                 onChange={(e) =>
                   setFormData({ ...formData, points: e.target.value })
@@ -115,24 +109,29 @@ export function EditActivityModal({ activity, onSave }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Data de Entrega</Label>
+              <Label htmlFor="dueDate">Data e Hora de Entrega</Label>
               <Input
                 id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, dueDate: e.target.value })
+                type="datetime-local"
+                value={
+                  formData.dueDate
+                    ? new Date(formData.dueDate).toISOString().slice(0, 16)
+                    : ""
                 }
+                onChange={(e) => {
+                  const value = e.target.value
+                    ? new Date(e.target.value).toISOString()
+                    : "";
+                  setFormData({ ...formData, dueDate: value });
+                }}
               />
             </div>
           </div>
 
-          {/* Tópico */}
           <div className="space-y-2">
             <Label htmlFor="topic">Tópico</Label>
             <Input
               id="topic"
-              placeholder="Ex: Robótica, Lógica, Web, etc."
               value={formData.topic}
               onChange={(e) =>
                 setFormData({ ...formData, topic: e.target.value })
@@ -140,7 +139,6 @@ export function EditActivityModal({ activity, onSave }) {
             />
           </div>
 
-          {/* Anexos */}
           <div className="space-y-2">
             <Label>Anexos (opcional)</Label>
             <div className="flex items-center gap-2">
@@ -163,7 +161,7 @@ export function EditActivityModal({ activity, onSave }) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button

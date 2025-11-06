@@ -49,9 +49,9 @@ import {
   TrendingUp,
   Clock,
   MessageSquare,
-  Book
+  Book,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   createClass,
   listTeachingClasses,
@@ -80,6 +80,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { StudentDetailsModal } from "./StudentDetailsModal";
 
 interface ClassWithMembers extends ClassRecord {
   memberCount?: number;
@@ -1040,13 +1041,10 @@ export function ClassManagement() {
                         size="sm"
                         className="flex-1 bg-black text-white hover:bg-gray-800"
                         onClick={() =>
-                          window.open(
-                            `/atividades/${classItem.id}`,
-                            "_blank"
-                          )
+                          window.open(`/atividades/${classItem.id}`, "_blank")
                         }
                       >
-                         <Book className="mr-2 h-4 w-4" />
+                        <Book className="mr-2 h-4 w-4" />
                         Atividades
                       </Button>
 
@@ -1248,8 +1246,6 @@ export function ClassManagement() {
               </CardContent>
             </Card>
           )}
-
-          
 
           <Dialog open={editOpen} onOpenChange={setEditOpen}>
             <DialogContent className="sm:max-w-[500px]">
@@ -1466,10 +1462,27 @@ export function ClassManagement() {
                           {filteredMembers.map((member) => (
                             <TableRow key={member.id}>
                               <TableCell className="font-medium">
-                                {member.expand?.user?.name || "N/A"}
+                                {member.expand?.user?.length ? (
+                                  <>
+                                    {member.expand.user.map((u) => (
+                                      <StudentDetailsModal
+                                        key={u.id}
+                                        studentId={u.id}
+                                        studentName={u.name}
+                                        email={u.email}
+                                      />
+                                    ))}
+                                  </>
+                                ) : (
+                                  "N/A"
+                                )}
                               </TableCell>
                               <TableCell>
-                                {member.expand?.user?.email || "N/A"}
+                                {member.expand?.user?.length
+                                  ? member.expand.user
+                                      .map((u) => u.email)
+                                      .join(", ")
+                                  : "N/A"}
                               </TableCell>
                               <TableCell>
                                 <Badge

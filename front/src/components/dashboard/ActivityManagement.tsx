@@ -1,14 +1,6 @@
-import {
-  ArrowLeft,
-  Edit,
-  Eye,
-  Link2,
-  Plus,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { ArrowLeft, FileUp, Plus, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -16,11 +8,12 @@ import {
   DialogDescription,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogHeader,
 } from "@/components/ui/dialog";
-import { DialogFooter, DialogHeader } from "../ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -29,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent } from "../ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Tooltip,
   TooltipContent,
@@ -38,6 +31,7 @@ import {
 } from "@/components/ui/tooltip";
 import { EditActivityModal } from "./EditActivityModal";
 import { createActivityPB } from "@/services/activity-services";
+import { pb } from "@/lib/pocketbase";
 
 const formatDate = (dateString) => {
   if (!dateString) return "—";
@@ -48,58 +42,97 @@ const formatDate = (dateString) => {
     year: "numeric",
   });
 };
-import { useParams } from "react-router-dom";
-import { pb } from "@/lib/pocketbase";
 
 export function ActivityManagement() {
   const navigate = useNavigate();
   const { classId } = useParams();
 
   const [open, setOpen] = useState(false);
+  const [activities, setActivities] = useState([]);
   const [activity, setActivity] = useState({
     title: "",
     instructions: "",
     points: "",
     dueDate: "",
     topic: "",
-    attachment: "",
+    attachment: null,
   });
-  const [activities, setActivities] = useState([]);
 
-  // Função para carregar atividades do PocketBase
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+
   const loadActivities = async () => {
     try {
+      // 1) Busca as atividades da turma (se isso falhar, abortamos e mantemos o estado anterior)
       const records = await pb.collection("activities").getFullList({
         filter: `class.id='${classId}'`,
         expand: "class",
-        sort: "-created", // mais recentes primeiro
+        sort: "-created",
       });
 
+      // 2) Tenta buscar submissões e matrículas em paralelo, mas sem quebrar tudo se uma falhar
+      const [subsRes, enrollRes] = await Promise.allSettled([
+        pb.collection("submissions").getFullList({
+          filter: `activity.class.id='${classId}'`,
+          expand: "activity",
+        }),
+        pb.collection("class_members").getFullList({
+          filter: `class.id='${classId}' && role='student'`,
+        }),
+      ]);
+      // 3) Se alguma chamada falhar, usamos array vazio para não quebrar a montagem
+      const allSubmissions =
+        subsRes.status === "fulfilled" ? subsRes.value : [];
+      const allEnrollments =
+        enrollRes.status === "fulfilled" ? enrollRes.value : [];
+
+      // 4) Conta submissões por activity.id
+      const submissionCounts: Record<string, number> = {};
+      allSubmissions.forEach((s) => {
+        // tenta pegar id expandido, senão assume que vem direto em s.activity
+        const activityId = s.expand?.activity?.id || s.activity;
+        if (!activityId) return;
+        submissionCounts[activityId] = (submissionCounts[activityId] || 0) + 1;
+      });
+
+      const totalStudents = Array.isArray(allEnrollments)
+        ? allEnrollments.length
+        : 0;
+
+      // 5) Monta array formatado
       const formatted = records.map((r) => ({
         id: r.id,
         title: r.title,
         description: r.instructions,
         status: r.status || "em andamento",
-        submittedCount: r.submittedCount || 0,
-        totalStudents: r.totalStudents || 0,
+        submittedCount: submissionCounts[r.id] || 0,
+        totalStudents,
         createdAt: r.created,
         dueDate: r.dueDate,
       }));
 
-      setActivities(formatted);
+      // 6) Atualiza o estado: se formatted vier vazio (por algum motivo), não apagamos o que já tinha
+      setActivities((prev) =>
+        formatted && formatted.length ? formatted : prev
+      );
     } catch (error) {
+      // erro inesperado: log e não modificamos o estado atual (não some nada)
       console.error("Erro ao carregar atividades:", error);
     }
   };
 
-  // Carregar atividades ao montar o componente ou quando classId mudar
   useEffect(() => {
     if (classId) {
       loadActivities();
+      const interval = setInterval(loadActivities, 60000); // atualiza a cada 1 min
+      return () => clearInterval(interval);
     }
   }, [classId]);
 
-  // handleCreate permanece igual
+  // ➕ Criar nova atividade
   const handleCreate = async () => {
     if (!activity.title) {
       alert("O título é obrigatório!");
@@ -132,7 +165,7 @@ export function ActivityManagement() {
         points: "",
         dueDate: "",
         topic: "",
-        attachment: "",
+        attachment: null,
       });
 
       setOpen(false);
@@ -142,9 +175,23 @@ export function ActivityManagement() {
     }
   };
 
+  // ❌ Confirmar exclusão
+  const handleConfirmDelete = async () => {
+    try {
+      await pb.collection("activities").delete(deleteId);
+      setActivities((prev) => prev.filter((a) => a.id !== deleteId));
+      setConfirmOpen(false);
+      setDeleteId(null);
+    } catch (error) {
+      console.error("Erro ao excluir atividade:", error);
+      alert("Não foi possível excluir a atividade.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
       <div className="container mx-auto p-6 space-y-6">
+        {/* Cabeçalho */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
             <Button
@@ -158,10 +205,12 @@ export function ActivityManagement() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Atividades</h1>
               <p className="mt-2 text-muted-foreground">
-                Acompanhe as atividades dos seus alunos
+                Acompanhe e gerencie as atividades da turma
               </p>
             </div>
           </div>
+
+          {/* Botão Nova Atividade */}
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-black text-white hover:bg-gray-800">
@@ -180,7 +229,6 @@ export function ActivityManagement() {
               </DialogHeader>
 
               <div className="space-y-5 py-4">
-                {/* Título */}
                 <div className="space-y-2">
                   <Label htmlFor="title">Título *</Label>
                   <Input
@@ -193,7 +241,6 @@ export function ActivityManagement() {
                   />
                 </div>
 
-                {/* Instruções */}
                 <div className="space-y-2">
                   <Label htmlFor="instructions">Instruções</Label>
                   <Textarea
@@ -201,16 +248,12 @@ export function ActivityManagement() {
                     placeholder="Descreva as orientações e critérios de avaliação"
                     value={activity.instructions}
                     onChange={(e) =>
-                      setActivity({
-                        ...activity,
-                        instructions: e.target.value,
-                      })
+                      setActivity({ ...activity, instructions: e.target.value })
                     }
                     rows={4}
                   />
                 </div>
 
-                {/* Pontuação e Data de Entrega */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="points">Pontuação</Label>
@@ -224,12 +267,11 @@ export function ActivityManagement() {
                       }
                     />
                   </div>
-
                   <div className="space-y-2">
-                    <Label htmlFor="dueDate">Data de Entrega</Label>
+                    <Label htmlFor="dueDate">Data e Hora de Entrega</Label>
                     <Input
                       id="dueDate"
-                      type="date"
+                      type="datetime-local"
                       value={activity.dueDate}
                       onChange={(e) =>
                         setActivity({ ...activity, dueDate: e.target.value })
@@ -238,7 +280,6 @@ export function ActivityManagement() {
                   </div>
                 </div>
 
-                {/* Tópico */}
                 <div className="space-y-2">
                   <Label htmlFor="topic">Tópico</Label>
                   <Input
@@ -249,27 +290,6 @@ export function ActivityManagement() {
                       setActivity({ ...activity, topic: e.target.value })
                     }
                   />
-                </div>
-
-                {/* Anexos */}
-                <div className="space-y-2">
-                  <Label>Anexos (opcional)</Label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="h-4 w-4" /> Arquivo
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Link2 className="h-4 w-4" /> Link
-                    </Button>
-                  </div>
                 </div>
               </div>
 
@@ -287,6 +307,8 @@ export function ActivityManagement() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* 📋 Tabela de Atividades */}
         <Card className="bg-white border shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <CardContent className="p-0">
             <Table>
@@ -314,7 +336,6 @@ export function ActivityManagement() {
                         </span>
                       </div>
                     </TableCell>
-
                     <TableCell>
                       <span
                         className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -328,59 +349,67 @@ export function ActivityManagement() {
                           : "Em andamento"}
                       </span>
                     </TableCell>
-
                     <TableCell>
                       {activity.submittedCount}/{activity.totalStudents}
                     </TableCell>
-
                     <TableCell>{formatDate(activity.createdAt)}</TableCell>
                     <TableCell>
                       {activity.dueDate ? formatDate(activity.dueDate) : "—"}
                     </TableCell>
-
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => viewActivity(activity.id)}
-                              aria-label="Visualizar atividade"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Visualizar</TooltipContent>
-                        </Tooltip>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  navigate(`/entregas/${activity.id}`)
+                                }
+                              >
+                                <FileUp className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Entregas</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
 
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <EditActivityModal
-                              activity={activity}
-                              onSave={(updated) => {
-                                console.log("Nova atividade editada:", updated);
-                                // Atualiza lista:
-                                // setActivities(prev => prev.map(a => a.id === updated.id ? updated : a))
-                              }}
-                            />
-                          </TooltipTrigger>
-                          <TooltipContent>Editar</TooltipContent>
-                        </Tooltip>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setSelectedActivity(activity);
+                                  setEditOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Editar</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
 
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => deleteActivity(activity.id)}
-                              aria-label="Excluir atividade"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Excluir</TooltipContent>
-                        </Tooltip>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setDeleteId(activity.id);
+                                  setConfirmOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Excluir</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -390,6 +419,37 @@ export function ActivityManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 🗑️ Modal de Confirmação */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir atividade</DialogTitle>
+            <DialogDescription>
+              Tem certeza de que deseja excluir esta atividade? Essa ação não
+              poderá ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✏️ Modal de Edição */}
+      {selectedActivity && (
+        <EditActivityModal
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          activity={selectedActivity}
+          onSave={() => loadActivities()}
+        />
+      )}
     </div>
   );
 }
