@@ -2,6 +2,7 @@ import { ArrowLeft, FileUp, Plus, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,7 @@ const formatDate = (dateString) => {
 export function ActivityManagement() {
   const navigate = useNavigate();
   const { classId } = useParams();
+  const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
   const [activities, setActivities] = useState([]);
@@ -56,6 +58,7 @@ export function ActivityManagement() {
     dueDate: "",
     topic: "",
     attachment: null,
+    link: "",
   });
 
   const [editOpen, setEditOpen] = useState(false);
@@ -134,45 +137,88 @@ export function ActivityManagement() {
 
   // ➕ Criar nova atividade
   const handleCreate = async () => {
-    if (!activity.title) {
-      alert("O título é obrigatório!");
+     if (!activity.title?.trim()) {
+    toast({
+      variant: "destructive",
+      title: "Campo obrigatório",
+      description: "O título da atividade é obrigatório.",
+    });
+    return;
+  }
+
+  // 🔒 Impede datas passadas
+  if (activity.dueDate) {
+    const now = new Date();
+    const due = new Date(activity.dueDate);
+
+    if (due < now) {
+      toast({
+        variant: "destructive",
+        title: "Data inválida",
+        description: "A data e hora de entrega não podem ser anteriores ao momento atual.",
+      });
       return;
     }
+  }
 
-    try {
-      const newAct = await createActivityPB({
-        ...activity,
-        classId,
-      });
+  try {
+    const today = new Date();
+    const due = activity.dueDate ? new Date(activity.dueDate) : null;
+    const status = due && due < today ? "terminada" : "em andamento";
 
-      setActivities((prev) => [
-        ...prev,
-        {
-          id: newAct.id,
-          title: newAct.title,
-          description: newAct.instructions,
-          status: newAct.status || "em andamento",
-          submittedCount: newAct.submittedCount || 0,
-          totalStudents: newAct.totalStudents || 0,
-          createdAt: newAct.created,
-          dueDate: newAct.dueDate,
-        },
-      ]);
+    const formDataToSend = new FormData();
+    formDataToSend.append("title", activity.title);
+    formDataToSend.append("instructions", activity.instructions || "");
+    formDataToSend.append("points", String(activity.points || "0"));
+    formDataToSend.append("topic", activity.topic || "");
+    formDataToSend.append("class", classId);
+    formDataToSend.append("status", status);
 
-      setActivity({
-        title: "",
-        instructions: "",
-        points: "",
-        dueDate: "",
-        topic: "",
-        attachment: null,
-      });
-
-      setOpen(false);
-    } catch (error) {
-      console.error("Erro ao criar atividade:", error);
-      alert("Não foi possível criar a atividade.");
+    if (activity.dueDate) {
+      const isoDate =
+        activity.dueDate.includes("T") && activity.dueDate.length <= 16
+          ? new Date(activity.dueDate).toISOString()
+          : activity.dueDate;
+      formDataToSend.append("dueDate", isoDate);
+    } else {
+      formDataToSend.append("dueDate", "");
     }
+
+    if (activity.attachment) {
+      formDataToSend.append("attachment", activity.attachment);
+    }
+
+    if (activity.link) {
+      formDataToSend.append("link", activity.link);
+    }
+
+    await pb.collection("activities").create(formDataToSend);
+    await loadActivities();
+
+    setActivity({
+      title: "",
+      instructions: "",
+      points: "",
+      dueDate: "",
+      topic: "",
+      attachment: null,
+      link: "",
+    });
+
+    setOpen(false);
+
+    toast({
+      title: "Atividade criada com sucesso!",
+      description: "A nova atividade foi adicionada à turma.",
+    });
+  } catch (error) {
+    console.error("Erro ao criar atividade:", error);
+    toast({
+      variant: "destructive",
+      title: "Erro ao criar atividade",
+      description: "Não foi possível criar a atividade. Tente novamente.",
+    });
+  }
   };
 
   // ❌ Confirmar exclusão
@@ -290,6 +336,41 @@ export function ActivityManagement() {
                       setActivity({ ...activity, topic: e.target.value })
                     }
                   />
+                </div>
+
+                {/* Upload + Link */}
+                <div className="space-y-2">
+                  <Label>Anexo (opcional)</Label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer border px-3 py-2 rounded-md text-sm hover:bg-gray-50">
+                      <FileUp className="h-4 w-4" />
+                      <span>Arquivo</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setActivity({ ...activity, attachment: file });
+                        }}
+                      />
+                    </label>
+
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        placeholder="ou insira um link..."
+                        value={activity.link || ""}
+                        onChange={(e) =>
+                          setActivity({ ...activity, link: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {activity.attachment && (
+                    <p className="text-xs text-gray-600">
+                      Arquivo selecionado: <b>{activity.attachment.name}</b>
+                    </p>
+                  )}
                 </div>
               </div>
 

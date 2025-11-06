@@ -5,15 +5,18 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
+  DialogFooter,
+  DialogHeader,
 } from "@/components/ui/dialog";
-import { DialogFooter, DialogHeader } from "../ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, Link2 } from "lucide-react";
 import { pb } from "@/lib/pocketbase";
+import { useToast } from "@/components/ui/use-toast"; // ✅ Import do toast
 
 export function EditActivityModal({ open, onOpenChange, activity, onSave }) {
+  const { toast } = useToast(); // ✅ Hook do toast
   const [formData, setFormData] = useState({
     title: "",
     instructions: "",
@@ -22,6 +25,9 @@ export function EditActivityModal({ open, onOpenChange, activity, onSave }) {
     topic: "",
     attachment: "",
   });
+
+  const [file, setFile] = useState<File | null>(null);
+  const [link, setLink] = useState("");
 
   useEffect(() => {
     if (activity) {
@@ -33,30 +39,70 @@ export function EditActivityModal({ open, onOpenChange, activity, onSave }) {
         topic: activity.topic || "",
         attachment: activity.attachment || "",
       });
+      setLink(activity.link || "");
     }
   }, [activity]);
 
+  const handleFileChange = (e) => {
+    if (e.target.files?.[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
   const handleEdit = async () => {
-    if (!formData.title) {
-      alert("O título é obrigatório!");
+    // ✅ Validação: título obrigatório
+    if (!formData.title.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Campo obrigatório",
+        description: "O título da atividade é obrigatório.",
+      });
       return;
     }
 
+    // ✅ Validação: data/hora não pode ser anterior a agora
+    if (formData.dueDate) {
+      const now = new Date();
+      const due = new Date(formData.dueDate);
+      if (due < now) {
+        toast({
+          variant: "destructive",
+          title: "Data inválida",
+          description:
+            "A data e hora de entrega não podem ser anteriores ao momento atual.",
+        });
+        return;
+      }
+    }
+
     try {
-      const updated = await pb.collection("activities").update(activity.id, {
+      const dataToUpdate: any = {
         title: formData.title,
         instructions: formData.instructions,
         points: Number(formData.points) || 0,
-        dueDate: formData.dueDate || null, // já em formato ISO
+        dueDate: formData.dueDate || null,
         topic: formData.topic,
-        attachment: formData.attachment || "",
-      });
+      };
 
-      onSave?.(updated); // recarrega lista
+      if (link) dataToUpdate.attachment = link;
+      if (file) dataToUpdate.file = file;
+
+      const updated = await pb.collection("activities").update(activity.id, dataToUpdate);
+
+      onSave?.(updated);
       onOpenChange(false);
+
+      toast({
+        title: "Atividade atualizada",
+        description: "As alterações foram salvas com sucesso.",
+      });
     } catch (error) {
       console.error("Erro ao atualizar atividade:", error);
-      alert("Não foi possível salvar as alterações.");
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar alterações",
+        description: "Não foi possível atualizar a atividade. Tente novamente.",
+      });
     }
   };
 
@@ -66,12 +112,12 @@ export function EditActivityModal({ open, onOpenChange, activity, onSave }) {
         <DialogHeader>
           <DialogTitle>Editar Atividade</DialogTitle>
           <DialogDescription>
-            Atualize as informações abaixo e clique em <b>Salvar</b> para
-            registrar as alterações.
+            Atualize as informações abaixo e clique em <b>Salvar</b>.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-4">
+          {/* Campos principais */}
           <div className="space-y-2">
             <Label htmlFor="title">Título *</Label>
             <Input
@@ -87,11 +133,11 @@ export function EditActivityModal({ open, onOpenChange, activity, onSave }) {
             <Label htmlFor="instructions">Instruções</Label>
             <Textarea
               id="instructions"
+              rows={4}
               value={formData.instructions}
               onChange={(e) =>
                 setFormData({ ...formData, instructions: e.target.value })
               }
-              rows={4}
             />
           </div>
 
@@ -128,35 +174,33 @@ export function EditActivityModal({ open, onOpenChange, activity, onSave }) {
             </div>
           </div>
 
+          {/* Upload e Link */}
           <div className="space-y-2">
-            <Label htmlFor="topic">Tópico</Label>
-            <Input
-              id="topic"
-              value={formData.topic}
-              onChange={(e) =>
-                setFormData({ ...formData, topic: e.target.value })
-              }
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Anexos (opcional)</Label>
+            <Label>Anexo (opcional)</Label>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Upload className="h-4 w-4" /> Arquivo
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Link2 className="h-4 w-4" /> Link
-              </Button>
+              <label className="flex items-center gap-2 cursor-pointer border px-3 py-2 rounded-md text-sm hover:bg-gray-50">
+                <Upload className="h-4 w-4" />
+                <span>Arquivo</span>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </label>
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  placeholder="ou insira um link..."
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                />
+                <Link2 className="h-4 w-4 text-gray-500" />
+              </div>
             </div>
+            {file && (
+              <p className="text-xs text-gray-600">
+                Arquivo selecionado: <b>{file.name}</b>
+              </p>
+            )}
           </div>
         </div>
 

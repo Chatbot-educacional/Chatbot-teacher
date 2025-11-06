@@ -48,43 +48,66 @@ export function ActivitySubmissions() {
 
   const [activity, setActivity] = useState<any>(null);
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [classMembers, setClassMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para o modal
   const [open, setOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
   const [grade, setGrade] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [filter, setFilter] = useState<"all" | "submitted" | "not-submitted">("all");
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
+
         const activityRecord = await pb.collection("activities").getOne(activityId);
+        setActivity(activityRecord);
+
         const submissionRecords = await pb.collection("submissions").getFullList({
           filter: `activity.id = '${activityId}'`,
           expand: "student",
           sort: "-submittedAt",
         });
-        setActivity(activityRecord);
+
+        const classId = activityRecord?.class || activityRecord?.expand?.class?.id;
+        let members: any[] = [];
+        if (classId) {
+          members = await pb.collection("class_members").getFullList({
+            filter: `class.id = '${classId}' && role = 'student'`,
+            expand: "user",
+          });
+        }
+
         setSubmissions(submissionRecords);
+        setClassMembers(members);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível carregar entregas.",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     if (activityId) loadData();
-  }, [activityId]);
+  }, [activityId, toast]);
 
   const refreshList = async () => {
-    const submissionRecords = await pb.collection("submissions").getFullList({
-      filter: `activity.id = '${activityId}'`,
-      expand: "student",
-      sort: "-submittedAt",
-    });
-    setSubmissions(submissionRecords);
+    try {
+      const submissionRecords = await pb.collection("submissions").getFullList({
+        filter: `activity.id = '${activityId}'`,
+        expand: "student",
+        sort: "-submittedAt",
+      });
+      setSubmissions(submissionRecords);
+    } catch (err) {
+      console.error("Erro ao atualizar lista:", err);
+    }
   };
 
   const handleAvaliarClick = (sub: any) => {
@@ -96,11 +119,10 @@ export function ActivitySubmissions() {
 
   const handleSalvarAvaliacao = async () => {
     if (!selectedSubmission) return;
-
     if (!grade || isNaN(Number(grade))) {
       toast({
         title: "Informe uma nota válida",
-        description: "Você deve inserir um número válido antes de salvar.",
+        description: "Digite um número válido.",
         variant: "destructive",
       });
       return;
@@ -110,15 +132,14 @@ export function ActivitySubmissions() {
       await pb.collection("submissions").update(selectedSubmission.id, {
         grade: parseFloat(grade),
         feedback: feedback || "",
-        status: "corrigido", // ✅ Atualiza status
+        status: "corrigido",
       });
-
       toast({ title: "Avaliação salva com sucesso!" });
       setOpen(false);
       setSelectedSubmission(null);
       setGrade("");
       setFeedback("");
-      await refreshList(); // Atualiza tabela
+      await refreshList();
     } catch (err) {
       console.error(err);
       toast({
@@ -131,165 +152,164 @@ export function ActivitySubmissions() {
 
   if (loading) return <div className="p-10 text-center">Carregando...</div>;
 
+  // IDs de quem entregou
+  const submittedStudentIds = submissions
+    .map((s) => (typeof s.student === "string" ? s.student : s.expand?.student?.id))
+    .filter(Boolean);
+
+  const submittedIdsSet = new Set(submittedStudentIds);
+
+  // Lista de não entregues: alunos da turma cujo ID não está nas submissões
+  const notSubmittedList = classMembers.filter((m) => {
+    const uid = typeof m.user === "string" ? m.user : m.expand?.user?.id;
+    return uid && !submittedIdsSet.has(uid);
+  });
+
+  // Entregues únicos por aluno
+  const uniqueSubmittedMap = new Map<string, any>();
+  for (const sub of submissions) {
+    const sid = typeof sub.student === "string" ? sub.student : sub.expand?.student?.id;
+    if (!sid) continue;
+    if (!uniqueSubmittedMap.has(sid)) {
+      uniqueSubmittedMap.set(sid, sub);
+    }
+  }
+  const uniqueSubmittedByStudent = Array.from(uniqueSubmittedMap.values());
+
+  const showSubmitted = filter === "all" || filter === "submitted";
+  const showNotSubmitted = filter === "all" || filter === "not-submitted";
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
       <div className="container mx-auto p-6 space-y-6">
         {/* Cabeçalho */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              onClick={() => history.back()}
-              variant="ghost"
-              size="icon"
-              className="hover:bg-white/20"
-            >
+            <Button onClick={() => navigate(-1)} variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Entregas \ {activity?.title || "Atividade"}
-              </h1>
-              <p className="mt-2 text-muted-foreground">
-                Visualize e avalie as respostas enviadas pelos alunos
-              </p>
+              <h1 className="text-3xl font-bold">Entregas \ {activity?.title}</h1>
+              <p className="text-muted-foreground">Visualize e avalie as entregas dos alunos</p>
             </div>
+          </div>
+
+          {/* Filtros */}
+          <div className="flex gap-2 items-center">
+            <Button
+              variant={filter === "all" ? "default" : "ghost"}
+              onClick={() => setFilter("all")}
+            >
+              Todos ({classMembers.length})
+            </Button>
+            <Button
+              variant={filter === "submitted" ? "default" : "ghost"}
+              onClick={() => setFilter("submitted")}
+            >
+              Entregues ({uniqueSubmittedByStudent.length})
+            </Button>
+            <Button
+              variant={filter === "not-submitted" ? "default" : "ghost"}
+              onClick={() => setFilter("not-submitted")}
+            >
+              Não Entregues ({notSubmittedList.length})
+            </Button>
           </div>
         </div>
 
-        {/* Tabela */}
-        <Card className="bg-white border shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Aluno</TableHead>
-                  <TableHead className="w-[180px]">Data de Envio</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Nota</TableHead>
-                  <TableHead>Arquivo</TableHead>
-                  <TableHead>Feedback</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {submissions.length > 0 ? (
-                  submissions.map((sub) => {
-                    const student = sub.expand?.student;
-                    const fileUrl =
-                      sub.attachments?.length > 0
-                        ? pb.files.getUrl(sub, sub.attachments[0])
-                        : null;
+        {/* Tabelas */}
+        <div className="space-y-6">
+          {/* Entregues */}
+          {showSubmitted && (
+            <Card>
+              <CardContent className="p-0">
+                <h2 className="text-lg font-semibold px-6 py-4 border-b">
+                  Entregues ({uniqueSubmittedByStudent.length})
+                </h2>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Aluno</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Nota</TableHead>
+                      <TableHead>Arquivo</TableHead>
+                      <TableHead>Feedback</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {uniqueSubmittedByStudent.length > 0 ? (
+                      uniqueSubmittedByStudent.map((s) => {
+                        const st = s.expand?.student;
+                        const attachments = s.attachments || [];
+                        const fileUrl =
+                          attachments.length > 0 ? pb.files.getUrl(s, attachments[0]) : null;
 
-                    // Truncar feedback se muito longo
-                    const truncatedFeedback =
-                      sub.feedback && sub.feedback.length > 40
-                        ? sub.feedback.slice(0, 40) + "..."
-                        : sub.feedback || "—";
-
-                    return (
-                      <TableRow
-                        key={sub.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800"
-                      >
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {student?.name || "Aluno"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {student?.email}
-                            </span>
-                          </div>
-                        </TableCell>
-
-                        <TableCell>{formatDate(sub.submittedAt)}</TableCell>
-
-                        <TableCell>
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              sub.status === "corrigido"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {sub.status === "corrigido"
-                              ? "Corrigido"
-                              : "Enviado"}
-                          </span>
-                        </TableCell>
-
-                        <TableCell>
-                          {sub.grade ? (
-                            <div className="flex items-center gap-2">
-                              <span>{sub.grade} pts</span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAvaliarClick(sub)}
-                              >
-                                Editar
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleAvaliarClick(sub)}
-                            >
-                              Avaliar
-                            </Button>
-                          )}
-                        </TableCell>
-
-                        <TableCell>
-                          {fileUrl ? (
-                            <a
-                              href={fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 underline text-sm flex items-center gap-1"
-                            >
-                              <Eye className="h-4 w-4" /> Ver arquivo
-                            </a>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-
-                        <TableCell>
-                          {sub.feedback ? (
-                            <TooltipProvider delayDuration={200}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="cursor-help text-sm text-slate-800 dark:text-slate-200">
-                                    {truncatedFeedback}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-sm break-words">
-                                  {sub.feedback}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            "—"
-                          )}
+                        return (
+                          <TableRow key={s.id}>
+                            <TableCell>{st?.name}</TableCell>
+                            <TableCell>{st?.email}</TableCell>
+                            <TableCell>{formatDate(s.submittedAt)}</TableCell>
+                            <TableCell>{s.status}</TableCell>
+                            <TableCell>
+                              {s.grade ? (
+                                <>
+                                  {s.grade}{" "}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleAvaliarClick(s)}
+                                  >
+                                    Editar
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleAvaliarClick(s)}
+                                >
+                                  Avaliar
+                                </Button>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {fileUrl ? (
+                                <a
+                                  href={fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 underline"
+                                >
+                                  <Eye className="inline h-4 w-4 mr-1" />
+                                  Ver
+                                </a>
+                              ) : (
+                                "—"
+                              )}
+                            </TableCell>
+                            <TableCell>{s.feedback || "—"}</TableCell>
+                          </TableRow>
+                        );
+                      })
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6">
+                          Nenhuma entrega
                         </TableCell>
                       </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-6">
-                      Nenhuma entrega encontrada
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+        </div>
       </div>
 
-      {/* Modal de Avaliação */}
+      {/* Modal Avaliação */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
@@ -312,7 +332,7 @@ export function ActivitySubmissions() {
               <Textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                placeholder="Escreva um comentário para o aluno"
+                placeholder="Escreva um comentário"
               />
             </div>
           </div>
