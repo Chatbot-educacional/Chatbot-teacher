@@ -444,12 +444,11 @@ export const searchUsers = async (query: string): Promise<UserRecord[]> => {
     if (!query.trim()) {
       return [];
     }
-
     const records = await pb.collection('users').getList(1, 10, {
       filter: `email ~ "${query}" || name ~ "${query}"`,
       requestKey: `search_users_${Date.now()}`,
     } as any);
-
+    console.log(records);
     return records.items as UserRecord[];
   } catch (error) {
     console.error('Erro ao buscar usuários:', error);

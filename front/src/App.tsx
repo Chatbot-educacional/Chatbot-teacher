@@ -12,6 +12,7 @@ import { captureEvent, initPosthog } from "@/lib/analytics";
 import { ClassManagement } from "./components/dashboard/ClassManagement";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ActivityManagement } from "./components/dashboard/ActivityManagement";
+import { ActivitySubmissions } from "./components/dashboard/ActivitySubmissions";
 
 
 const queryClient = new QueryClient();
@@ -100,10 +101,18 @@ const App = () => (
                 } 
               />
               <Route 
-                path="/atividades/:classId" 
+                path="/teacher/atividades/:classId" 
                 element={
                   <ProtectedRoute requiredRole="teacher">
                     <ActivityManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/teacher/entregas/:activityId" 
+                element={
+                  <ProtectedRoute requiredRole="teacher">
+                    <ActivitySubmissions />
                   </ProtectedRoute>
                 } 
               />
