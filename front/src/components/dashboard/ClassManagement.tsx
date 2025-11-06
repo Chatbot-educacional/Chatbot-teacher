@@ -1041,7 +1041,7 @@ export function ClassManagement() {
                         className="flex-1 bg-black text-white hover:bg-gray-800"
                         onClick={() =>
                           window.open(
-                            `/atividades/${classItem.id}`,
+                            `/teacher/atividades/${classItem.id}`,
                             "_blank"
                           )
                         }
