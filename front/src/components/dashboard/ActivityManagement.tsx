@@ -39,7 +39,7 @@ import {
 import EditActivityModal from "./EditActivityModal";
 import { createActivityPB } from "@/services/activity-services";
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | null | undefined) => {
   if (!dateString) return "—";
   const date = new Date(dateString);
   return date.toLocaleDateString("pt-BR", {
