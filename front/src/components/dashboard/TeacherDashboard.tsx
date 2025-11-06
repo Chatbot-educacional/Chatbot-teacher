@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardHeader } from "./DashboardHeader";
 import { SummaryCards } from "./SummaryCards";
+import { AnalyticsService } from '@/services/analytics-service';
+import { ClassAnalyticsData } from '@/types/dashboard';
 import { PerformanceChart } from "./PerformanceChart";
 import { EnhancedStudentsTable } from "./EnhancedStudentsTable";
 import { DifficultTopics } from "./DifficultTopics";
@@ -23,6 +25,27 @@ export function TeacherDashboard() {
     sortBy: "accuracy",
     sortOrder: "desc"
   });
+  const [classAnalytics, setClassAnalytics] = useState<ClassAnalyticsData | null>(null);
+
+  const fetchClassAnalytics = async (classId: string) => {
+    if (classId === "all") {
+      setClassAnalytics(null);
+      return;
+    }
+    try {
+      // Usando a função de analytics que busca os dados do banco
+      const className = mockClasses.find(c => c.id === classId)?.name || 'Turma';
+      const data = await AnalyticsService.generateClassAnalytics(classId, className, 7); // 7 dias como padrão
+      setClassAnalytics(data);
+    } catch (error) {
+      console.error("Erro ao buscar analytics da turma:", error);
+      setClassAnalytics(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchClassAnalytics(filters.selectedClass);
+  }, [filters.selectedClass]);
 
   const handleStudentClick = (student: StudentAnalytics) => {
     setSelectedStudent(student);
@@ -137,11 +160,9 @@ export function TeacherDashboard() {
               />
             </div>
 
-            {/* Summary Cards */}
+            {/* Summary Cards (Agora usa dados reais do banco via ClassAnalyticsData) */}
             <SummaryCards
-              students={filteredStudents}
-              selectedSubject={filters.selectedSubject}
-              subjects={mockSubjects}
+              analyticsData={classAnalytics}
             />
 
             {/* Charts and Tables Row */}
