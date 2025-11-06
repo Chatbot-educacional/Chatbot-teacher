@@ -11,7 +11,7 @@ import {
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
-import pb from "@/lib/pocketbase";
+import { pb } from "@/lib/pocketbase";
 
 interface EditActivityModalProps {
   open: boolean;
