@@ -1,6 +1,18 @@
 import { pb } from '@/lib/pocketbase';
 
-export const createActivityPB = async (activity) => {
+
+interface ActivityInput {
+  title: string;
+  instructions?: string;
+  points?: number | string;
+  dueDate?: string | null;
+  topic?: string;
+  classId: string;
+  totalStudents?: number;
+  attachment?: string;
+}
+
+export const createActivityPB = async (activity: ActivityInput) => {
   try {
     const newActivity = await pb.collection("activities").create({
       title: activity.title,
