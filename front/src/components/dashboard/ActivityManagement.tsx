@@ -36,7 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { EditActivityModal } from "./EditActivityModal";
+import EditActivityModal from "./EditActivityModal";
 import { createActivityPB } from "@/services/activity-services";
 
 const formatDate = (dateString) => {
