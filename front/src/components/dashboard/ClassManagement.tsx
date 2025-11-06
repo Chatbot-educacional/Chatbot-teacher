@@ -1,23 +1,45 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  School, 
-  Plus, 
-  Users, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  UserPlus, 
-  Loader2, 
-  RefreshCw, 
-  Search, 
-  X, 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  School,
+  Plus,
+  Users,
+  Edit,
+  Trash2,
+  Eye,
+  UserPlus,
+  Loader2,
+  RefreshCw,
+  Search,
+  X,
   ArrowLeft,
   Download,
   ListFilter,
@@ -26,26 +48,38 @@ import {
   Copy,
   TrendingUp,
   Clock,
-  MessageSquare
+  MessageSquare,
+  Book
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { 
-  createClass, 
-  listTeachingClasses, 
-  updateClass, 
-  deleteClass, 
-  listClassMembers, 
-  addClassMember, 
+import {
+  createClass,
+  listTeachingClasses,
+  updateClass,
+  deleteClass,
+  listClassMembers,
+  addClassMember,
   removeClassMember,
   searchUsers,
   ClassRecord,
   UserRecord,
-  ClassMemberRecord
+  ClassMemberRecord,
 } from "@/lib/pocketbase";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ClassWithMembers extends ClassRecord {
   memberCount?: number;
@@ -69,33 +103,42 @@ export function ClassManagement() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
-  
+
   const [newClass, setNewClass] = useState({ name: "", description: "" });
   const [editClass, setEditClass] = useState<ClassWithMembers | null>(null);
-  const [deleteClass_selected, setDeleteClass_selected] = useState<ClassWithMembers | null>(null);
-  const [selectedClassForMembers, setSelectedClassForMembers] = useState<ClassWithMembers | null>(null);
-  
+  const [deleteClass_selected, setDeleteClass_selected] =
+    useState<ClassWithMembers | null>(null);
+  const [selectedClassForMembers, setSelectedClassForMembers] =
+    useState<ClassWithMembers | null>(null);
+
   const [members, setMembers] = useState<ClassMemberWithUser[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<UserRecord[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [memberCountFilter, setMemberCountFilter] = useState<MemberCountFilter>("all");
+  const [memberCountFilter, setMemberCountFilter] =
+    useState<MemberCountFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("recent");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [memberSearchTerm, setMemberSearchTerm] = useState("");
-  const [memberRoleFilter, setMemberRoleFilter] = useState<MemberRoleFilter>("all");
-  const [newMemberRole, setNewMemberRole] = useState<"student" | "teacher">("student");
+  const [memberRoleFilter, setMemberRoleFilter] =
+    useState<MemberRoleFilter>("all");
+  const [newMemberRole, setNewMemberRole] = useState<"student" | "teacher">(
+    "student"
+  );
 
-  const dateFormatter = useMemo(() => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }), []);
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }),
+    []
+  );
 
   const formatDate = (value?: string) => {
     if (!value) return "--";
     try {
       return dateFormatter.format(new Date(value));
     } catch (error) {
-      console.warn('Não foi possível formatar a data', error);
+      console.warn("Não foi possível formatar a data", error);
       return "--";
     }
   };
@@ -112,24 +155,32 @@ export function ClassManagement() {
       };
     }
 
-    const totalMembers = classes.reduce((sum, item) => sum + (item.memberCount || 0), 0);
+    const totalMembers = classes.reduce(
+      (sum, item) => sum + (item.memberCount || 0),
+      0
+    );
     const recentThreshold = Date.now() - 1000 * 60 * 60 * 24 * 30; // 30 dias
     const recentClasses = classes.filter((item) => {
       if (!item.created) return false;
       return new Date(item.created).getTime() >= recentThreshold;
     }).length;
 
-    const topClass = classes.reduce<ClassWithMembers | null>((prev, current) => {
-      if (!prev) return current;
-      const prevCount = prev.memberCount || 0;
-      const currentCount = current.memberCount || 0;
-      return currentCount > prevCount ? current : prev;
-    }, null);
+    const topClass = classes.reduce<ClassWithMembers | null>(
+      (prev, current) => {
+        if (!prev) return current;
+        const prevCount = prev.memberCount || 0;
+        const currentCount = current.memberCount || 0;
+        return currentCount > prevCount ? current : prev;
+      },
+      null
+    );
 
     return {
       totalClasses: classes.length,
       totalMembers,
-      averageMembers: classes.length ? Math.round(totalMembers / classes.length) : 0,
+      averageMembers: classes.length
+        ? Math.round(totalMembers / classes.length)
+        : 0,
       recentClasses,
       topClassName: topClass?.name,
       topClassCount: topClass?.memberCount || 0,
@@ -160,7 +211,9 @@ export function ClassManagement() {
       .filter((item) => {
         if (!search) return true;
         const nameMatch = item.name?.toLowerCase().includes(search);
-        const descriptionMatch = item.description?.toLowerCase().includes(search);
+        const descriptionMatch = item.description
+          ?.toLowerCase()
+          .includes(search);
         const codeMatch = item.code?.toLowerCase().includes(search);
         return Boolean(nameMatch || descriptionMatch || codeMatch);
       })
@@ -170,7 +223,7 @@ export function ClassManagement() {
 
     sorted.sort((a, b) => {
       if (sortOption === "alphabetical") {
-        return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
+        return a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" });
       }
 
       if (sortOption === "members") {
@@ -191,7 +244,8 @@ export function ClassManagement() {
     const search = memberSearchTerm.trim().toLowerCase();
 
     return members.filter((member) => {
-      const matchesRole = memberRoleFilter === "all" || member.role === memberRoleFilter;
+      const matchesRole =
+        memberRoleFilter === "all" || member.role === memberRoleFilter;
       if (!matchesRole) return false;
 
       if (!search) return true;
@@ -203,36 +257,44 @@ export function ClassManagement() {
     });
   }, [memberRoleFilter, memberSearchTerm, members]);
 
-  const isFilteringClasses = Boolean(searchTerm.trim()) || memberCountFilter !== "all" || sortOption !== "recent";
+  const isFilteringClasses =
+    Boolean(searchTerm.trim()) ||
+    memberCountFilter !== "all" ||
+    sortOption !== "recent";
 
   const loadClasses = useCallback(async () => {
     setLoading(true);
     try {
       const data = await listTeachingClasses();
-      
+
       // Carregar contagem de membros sequencialmente para evitar auto-cancel
       const classesWithCounts: ClassWithMembers[] = [];
       for (const classItem of data) {
         try {
-          const membersList = await listClassMembers(classItem.id) as ClassMemberWithUser[];
+          const membersList = (await listClassMembers(
+            classItem.id
+          )) as ClassMemberWithUser[];
           classesWithCounts.push({
             ...classItem,
             memberCount: membersList.length,
           });
         } catch (error) {
-          console.warn(`Erro ao carregar membros da turma ${classItem.id}:`, error);
+          console.warn(
+            `Erro ao carregar membros da turma ${classItem.id}:`,
+            error
+          );
           classesWithCounts.push({
             ...classItem,
             memberCount: 0,
           });
         }
         // Pequeno delay para evitar sobrecarregar
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      
+
       setClasses(classesWithCounts);
     } catch (error) {
-      console.error('Erro ao carregar turmas:', error);
+      console.error("Erro ao carregar turmas:", error);
       toast.error("Erro ao carregar turmas");
     } finally {
       setLoading(false);
@@ -266,8 +328,9 @@ export function ClassManagement() {
       setCreateOpen(false);
       await loadClasses();
     } catch (error) {
-      console.error('Erro ao criar turma:', error);
-      const message = error instanceof Error ? error.message : "Erro ao criar turma";
+      console.error("Erro ao criar turma:", error);
+      const message =
+        error instanceof Error ? error.message : "Erro ao criar turma";
       toast.error(message);
     }
   };
@@ -285,7 +348,7 @@ export function ClassManagement() {
       setEditClass(null);
       await loadClasses();
     } catch (error) {
-      console.error('Erro ao atualizar turma:', error);
+      console.error("Erro ao atualizar turma:", error);
       toast.error("Erro ao atualizar turma");
     }
   };
@@ -300,7 +363,7 @@ export function ClassManagement() {
       setDeleteClass_selected(null);
       await loadClasses();
     } catch (error) {
-      console.error('Erro ao excluir turma:', error);
+      console.error("Erro ao excluir turma:", error);
       toast.error("Erro ao excluir turma");
     }
   };
@@ -319,12 +382,14 @@ export function ClassManagement() {
     setSelectedClassForMembers(classItem);
     setMembersOpen(true);
     setLoadingMembers(true);
-    
+
     try {
-      const membersData = await listClassMembers(classItem.id) as ClassMemberWithUser[];
+      const membersData = (await listClassMembers(
+        classItem.id
+      )) as ClassMemberWithUser[];
       setMembers(membersData);
     } catch (error) {
-      console.error('Erro ao carregar membros:', error);
+      console.error("Erro ao carregar membros:", error);
       toast.error("Erro ao carregar membros");
     } finally {
       setLoadingMembers(false);
@@ -342,76 +407,99 @@ export function ClassManagement() {
       const results = await searchUsers(searchQuery);
       setSearchResults(results);
     } catch (error) {
-      console.error('Erro ao buscar usuários:', error);
+      console.error("Erro ao buscar usuários:", error);
       toast.error("Erro ao buscar usuários");
     } finally {
       setSearching(false);
     }
   };
 
-  const handleAddMember = async (userId: string, role: 'student' | 'teacher') => {
+  const handleAddMember = async (
+    userId: string,
+    role: "student" | "teacher"
+  ) => {
     if (!selectedClassForMembers) return;
 
     try {
       await addClassMember(selectedClassForMembers.id, userId, role);
-      toast.success(role === 'teacher' ? "Professor adicionado à turma" : "Aluno adicionado com sucesso!");
+      toast.success(
+        role === "teacher"
+          ? "Professor adicionado à turma"
+          : "Aluno adicionado com sucesso!"
+      );
       setSearchQuery("");
       setSearchResults([]);
-      
+
       // Aguardar um pouco antes de recarregar
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
       // Recarregar membros da turma atual
-      const membersData = await listClassMembers(selectedClassForMembers.id) as ClassMemberWithUser[];
+      const membersData = (await listClassMembers(
+        selectedClassForMembers.id
+      )) as ClassMemberWithUser[];
       setMembers(membersData);
-      
+
       // Atualizar a contagem local sem recarregar todas as turmas
-      setClasses(prev => prev.map(c => 
-        c.id === selectedClassForMembers.id 
-          ? { ...c, memberCount: membersData.length }
-          : c
-      ));
-      
+      setClasses((prev) =>
+        prev.map((c) =>
+          c.id === selectedClassForMembers.id
+            ? { ...c, memberCount: membersData.length }
+            : c
+        )
+      );
+
       // Atualizar selectedClassForMembers
-      setSelectedClassForMembers(prev => prev ? {
-        ...prev,
-        memberCount: membersData.length
-      } : null);
-      setNewMemberRole('student');
+      setSelectedClassForMembers((prev) =>
+        prev
+          ? {
+              ...prev,
+              memberCount: membersData.length,
+            }
+          : null
+      );
+      setNewMemberRole("student");
     } catch (error) {
-      console.error('Erro ao adicionar membro:', error);
+      console.error("Erro ao adicionar membro:", error);
       toast.error("Erro ao adicionar membro");
     }
   };
 
   const handleRemoveMember = async (memberId: string) => {
     if (!selectedClassForMembers) return;
-    
+
     try {
       await removeClassMember(memberId);
       toast.success("Membro removido com sucesso!");
-      
+
       // Aguardar um pouco antes de recarregar
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
       // Recarregar membros da turma atual
-      const membersData = await listClassMembers(selectedClassForMembers.id) as ClassMemberWithUser[];
+      const membersData = (await listClassMembers(
+        selectedClassForMembers.id
+      )) as ClassMemberWithUser[];
       setMembers(membersData);
-      
+
       // Atualizar a contagem local sem recarregar todas as turmas
-      setClasses(prev => prev.map(c => 
-        c.id === selectedClassForMembers.id 
-          ? { ...c, memberCount: membersData.length }
-          : c
-      ));
-      
+      setClasses((prev) =>
+        prev.map((c) =>
+          c.id === selectedClassForMembers.id
+            ? { ...c, memberCount: membersData.length }
+            : c
+        )
+      );
+
       // Atualizar selectedClassForMembers
-      setSelectedClassForMembers(prev => prev ? {
-        ...prev,
-        memberCount: membersData.length
-      } : null);
+      setSelectedClassForMembers((prev) =>
+        prev
+          ? {
+              ...prev,
+              memberCount: membersData.length,
+            }
+          : null
+      );
     } catch (error) {
-      console.error('Erro ao remover membro:', error);
+      console.error("Erro ao remover membro:", error);
       toast.error("Erro ao remover membro");
     }
   };
@@ -424,9 +512,12 @@ export function ClassManagement() {
 
   const exportClassToCsv = async (classItem: ClassWithMembers) => {
     try {
-      const membersList = await listClassMembers(classItem.id) as ClassMemberWithUser[];
+      const membersList = (await listClassMembers(
+        classItem.id
+      )) as ClassMemberWithUser[];
       const escapeCell = (value: string) => value.replace(/"/g, '""');
-      const normalizeText = (value: string) => value.replace(/\r?\n/g, ' ').trim();
+      const normalizeText = (value: string) =>
+        value.replace(/\r?\n/g, " ").trim();
 
       const classInfoRows = [
         ["Turma", classItem.name || "-"],
@@ -442,7 +533,7 @@ export function ClassManagement() {
         ? membersList.map((member) => [
             member.expand?.user?.name || "Sem nome",
             member.expand?.user?.email || "-",
-            member.role === 'teacher' ? 'Professor' : 'Aluno',
+            member.role === "teacher" ? "Professor" : "Aluno",
           ])
         : [["Nenhum membro cadastrado", "", ""]];
 
@@ -458,27 +549,32 @@ export function ClassManagement() {
         .map((row) => row.map((cell) => `"${escapeCell(cell)}"`).join(";"))
         .join("\n");
 
-      const baseName = (classItem.name || 'turma')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/gi, '_')
-        .replace(/_{2,}/g, '_')
-        .replace(/^_|_$/g, '') || 'turma';
+      const baseName =
+        (classItem.name || "turma")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/gi, "_")
+          .replace(/_{2,}/g, "_")
+          .replace(/^_|_$/g, "") || "turma";
       const fileName = `${baseName}_detalhes.csv`;
 
-      const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(["\ufeff" + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', fileName);
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success(`Exportamos os dados de ${classItem.name || 'turma'} para CSV`);
+      toast.success(
+        `Exportamos os dados de ${classItem.name || "turma"} para CSV`
+      );
     } catch (error) {
-      console.error('Erro ao exportar turma:', error);
-      toast.error('Não foi possível exportar esta turma');
+      console.error("Erro ao exportar turma:", error);
+      toast.error("Não foi possível exportar esta turma");
     }
   };
 
@@ -489,36 +585,36 @@ export function ClassManagement() {
     }
 
     const tryClipboard = async () => {
-      if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+      if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
         return false;
       }
       try {
         await navigator.clipboard.writeText(code);
         return true;
       } catch (error) {
-        console.warn('Falha ao copiar via Clipboard API:', error);
+        console.warn("Falha ao copiar via Clipboard API:", error);
         return false;
       }
     };
 
     const fallbackClipboard = () => {
       try {
-        const textarea = document.createElement('textarea');
+        const textarea = document.createElement("textarea");
         textarea.value = code;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
         document.body.appendChild(textarea);
         textarea.select();
-        const successful = document.execCommand('copy');
+        const successful = document.execCommand("copy");
         document.body.removeChild(textarea);
         return successful;
       } catch (error) {
-        console.error('Falha no fallback de cópia:', error);
+        console.error("Falha no fallback de cópia:", error);
         return false;
       }
     };
 
-    const copied = await tryClipboard() || fallbackClipboard();
+    const copied = (await tryClipboard()) || fallbackClipboard();
 
     if (copied) {
       toast.success("Código da turma copiado para a área de transferência");
@@ -542,7 +638,7 @@ export function ClassManagement() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <Button
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
                 variant="ghost"
                 size="icon"
                 className="hover:bg-white/20"
@@ -550,7 +646,9 @@ export function ClassManagement() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de Turmas</h1>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Gerenciamento de Turmas
+                </h1>
                 <p className="mt-2 text-muted-foreground">
                   Gerencie suas turmas, alunos e organize suas aulas
                 </p>
@@ -591,7 +689,9 @@ export function ClassManagement() {
                         id="name"
                         placeholder="Ex: Programação 2024"
                         value={newClass.name}
-                        onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
+                        onChange={(e) =>
+                          setNewClass({ ...newClass, name: e.target.value })
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -600,18 +700,24 @@ export function ClassManagement() {
                         id="description"
                         placeholder="Descrição da turma (opcional)"
                         value={newClass.description}
-                        onChange={(e) => setNewClass({ ...newClass, description: e.target.value })}
+                        onChange={(e) =>
+                          setNewClass({
+                            ...newClass,
+                            description: e.target.value,
+                          })
+                        }
                         rows={3}
                       />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setCreateOpen(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setCreateOpen(false)}
+                    >
                       Cancelar
                     </Button>
-                    <Button onClick={handleCreateClass}>
-                      Criar Turma
-                    </Button>
+                    <Button onClick={handleCreateClass}>Criar Turma</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -621,37 +727,55 @@ export function ClassManagement() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Card className="bg-white shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Turmas ativas</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Turmas ativas
+                </CardTitle>
                 <School className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{classMetrics.totalClasses}</div>
-                <p className="text-xs text-muted-foreground">criadas por você</p>
+                <div className="text-2xl font-bold">
+                  {classMetrics.totalClasses}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  criadas por você
+                </p>
               </CardContent>
             </Card>
             <Card className="bg-white shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Alunos inscritos</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Alunos inscritos
+                </CardTitle>
                 <Users className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{classMetrics.totalMembers}</div>
-                <p className="text-xs text-muted-foreground">total de membros nas suas turmas</p>
+                <div className="text-2xl font-bold">
+                  {classMetrics.totalMembers}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  total de membros nas suas turmas
+                </p>
               </CardContent>
             </Card>
             <Card className="bg-white shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Engajamento médio</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Engajamento médio
+                </CardTitle>
                 <TrendingUp className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{classMetrics.averageMembers}</div>
+                <div className="text-2xl font-bold">
+                  {classMetrics.averageMembers}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Média de alunos por turma
                   {classMetrics.topClassName && (
                     <>
-                      {' • '}maior turma:{' '}
-                      <span className="font-medium text-foreground">{classMetrics.topClassName}</span>
+                      {" • "}maior turma:{" "}
+                      <span className="font-medium text-foreground">
+                        {classMetrics.topClassName}
+                      </span>
                       {` (${classMetrics.topClassCount})`}
                     </>
                   )}
@@ -660,12 +784,18 @@ export function ClassManagement() {
             </Card>
             <Card className="bg-white shadow-sm border dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Turmas recentes</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Turmas recentes
+                </CardTitle>
                 <Clock className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{classMetrics.recentClasses}</div>
-                <p className="text-xs text-muted-foreground">criadas nos últimos 30 dias</p>
+                <div className="text-2xl font-bold">
+                  {classMetrics.recentClasses}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  criadas nos últimos 30 dias
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -685,7 +815,9 @@ export function ClassManagement() {
                   </div>
                   <Select
                     value={memberCountFilter}
-                    onValueChange={(value) => setMemberCountFilter(value as MemberCountFilter)}
+                    onValueChange={(value) =>
+                      setMemberCountFilter(value as MemberCountFilter)
+                    }
                   >
                     <SelectTrigger className="w-full bg-white md:w-[200px] border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800">
                       <SelectValue placeholder="Qtd. de alunos" />
@@ -700,14 +832,18 @@ export function ClassManagement() {
                   </Select>
                   <Select
                     value={sortOption}
-                    onValueChange={(value) => setSortOption(value as SortOption)}
+                    onValueChange={(value) =>
+                      setSortOption(value as SortOption)
+                    }
                   >
                     <SelectTrigger className="w-full bg-white md:w-[200px] border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800">
                       <SelectValue placeholder="Ordenar por" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="recent">Mais recentes</SelectItem>
-                      <SelectItem value="alphabetical">Ordem alfabética</SelectItem>
+                      <SelectItem value="alphabetical">
+                        Ordem alfabética
+                      </SelectItem>
                       <SelectItem value="members">Mais alunos</SelectItem>
                     </SelectContent>
                   </Select>
@@ -726,9 +862,9 @@ export function ClassManagement() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant={viewMode === 'grid' ? 'default' : 'outline'}
+                        variant={viewMode === "grid" ? "default" : "outline"}
                         size="icon"
-                        onClick={() => setViewMode('grid')}
+                        onClick={() => setViewMode("grid")}
                         aria-label="Visualização em cards"
                       >
                         <LayoutGrid className="h-4 w-4" />
@@ -739,9 +875,9 @@ export function ClassManagement() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        variant={viewMode === 'table' ? 'default' : 'outline'}
+                        variant={viewMode === "table" ? "default" : "outline"}
                         size="icon"
-                        onClick={() => setViewMode('table')}
+                        onClick={() => setViewMode("table")}
                         aria-label="Visualização em tabela"
                       >
                         <List className="h-4 w-4" />
@@ -754,13 +890,22 @@ export function ClassManagement() {
               {classes.length > 0 && (
                 <div className="flex flex-col gap-2 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
                   <span>
-                    Mostrando <span className="font-medium text-foreground">{filteredClasses.length}</span> de{' '}
-                    <span className="font-medium text-foreground">{classes.length}</span> turmas
+                    Mostrando{" "}
+                    <span className="font-medium text-foreground">
+                      {filteredClasses.length}
+                    </span>{" "}
+                    de{" "}
+                    <span className="font-medium text-foreground">
+                      {classes.length}
+                    </span>{" "}
+                    turmas
                   </span>
                   {classMetrics.topClassName && (
                     <span>
-                      Maior turma atual:{' '}
-                      <span className="font-medium text-foreground">{classMetrics.topClassName}</span>
+                      Maior turma atual:{" "}
+                      <span className="font-medium text-foreground">
+                        {classMetrics.topClassName}
+                      </span>
                       {` (${classMetrics.topClassCount} membros)`}
                     </span>
                   )}
@@ -774,8 +919,12 @@ export function ClassManagement() {
               <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center text-slate-700 dark:text-slate-200">
                 <School className="h-16 w-16 text-muted-foreground" />
                 <div>
-                  <h3 className="text-xl font-semibold">Nenhuma turma encontrada</h3>
-                  <p className="mt-1 text-muted-foreground">Comece criando sua primeira turma</p>
+                  <h3 className="text-xl font-semibold">
+                    Nenhuma turma encontrada
+                  </h3>
+                  <p className="mt-1 text-muted-foreground">
+                    Comece criando sua primeira turma
+                  </p>
                 </div>
                 <Button onClick={() => setCreateOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
@@ -790,20 +939,26 @@ export function ClassManagement() {
                 <div>
                   <h3 className="text-lg font-semibold">Nenhum resultado</h3>
                   <p className="mt-1 text-muted-foreground">
-                    Ajuste os filtros ou limpe a pesquisa para visualizar suas turmas
+                    Ajuste os filtros ou limpe a pesquisa para visualizar suas
+                    turmas
                   </p>
                 </div>
-                <Button variant="outline" onClick={handleResetFilters} className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleResetFilters}
+                  className="gap-2"
+                >
                   <ListFilter className="h-4 w-4" />
                   Limpar filtros
                 </Button>
               </CardContent>
             </Card>
-          ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          ) : viewMode === "grid" ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-2">
               {filteredClasses.map((classItem) => {
                 const isNew = classItem.created
-                  ? Date.now() - new Date(classItem.created).getTime() < 1000 * 60 * 60 * 24 * 7
+                  ? Date.now() - new Date(classItem.created).getTime() <
+                    1000 * 60 * 60 * 24 * 7
                   : false;
 
                 return (
@@ -812,16 +967,21 @@ export function ClassManagement() {
                     className="relative border border-slate-200 bg-white transition-shadow hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
                   >
                     {isNew && (
-                      <Badge className="absolute right-4 top-4" variant="secondary">
+                      <Badge
+                        className="absolute right-4 top-4"
+                        variant="secondary"
+                      >
                         Novo
                       </Badge>
                     )}
                     <CardHeader>
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
-                          <CardTitle className="text-xl">{classItem.name}</CardTitle>
+                          <CardTitle className="text-xl">
+                            {classItem.name}
+                          </CardTitle>
                           <CardDescription className="line-clamp-2 text-slate-600 dark:text-slate-300">
-                            {classItem.description || 'Sem descrição'}
+                            {classItem.description || "Sem descrição"}
                           </CardDescription>
                         </div>
                         <div className="flex flex-col items-end gap-3">
@@ -833,13 +993,17 @@ export function ClassManagement() {
                                   variant="outline"
                                   size="sm"
                                   className="gap-2"
-                                  onClick={() => handleCopyClassCode(classItem.code)}
+                                  onClick={() =>
+                                    handleCopyClassCode(classItem.code)
+                                  }
                                 >
                                   {classItem.code}
                                   <Copy className="h-3 w-3" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Copiar código da turma</TooltipContent>
+                              <TooltipContent>
+                                Copiar código da turma
+                              </TooltipContent>
                             </Tooltip>
                           )}
                         </div>
@@ -858,20 +1022,44 @@ export function ClassManagement() {
                       <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-300">
                         <div className="flex items-center justify-between">
                           <span>Criada em</span>
-                          <span className="font-medium text-foreground">{formatDate(classItem.created)}</span>
+                          <span className="font-medium text-foreground">
+                            {formatDate(classItem.created)}
+                          </span>
                         </div>
                         <div className="mt-2 flex items-center justify-between">
                           <span>Última atualização</span>
-                          <span className="font-medium text-foreground">{formatDate(classItem.updated)}</span>
+                          <span className="font-medium text-foreground">
+                            {formatDate(classItem.updated)}
+                          </span>
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter className="flex gap-2">
+                    <CardFooter className="flex gap-1">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1 bg-black text-white hover:bg-gray-800"
+                        onClick={() =>
+                          window.open(
+                            `/atividades/${classItem.id}`,
+                            "_blank"
+                          )
+                        }
+                      >
+                         <Book className="mr-2 h-4 w-4" />
+                        Atividades
+                      </Button>
+
                       <Button
                         variant="default"
                         size="sm"
                         className="flex-1"
-                        onClick={() => window.open(`https://coderbot.space/class/${classItem.id}`, '_blank')}
+                        onClick={() =>
+                          window.open(
+                            `https://coderbot.space/class/${classItem.id}`,
+                            "_blank"
+                          )
+                        }
                       >
                         <MessageSquare className="mr-2 h-4 w-4" />
                         Fórum
@@ -945,12 +1133,17 @@ export function ClassManagement() {
                   </TableHeader>
                   <TableBody>
                     {filteredClasses.map((classItem) => (
-                      <TableRow key={classItem.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
+                      <TableRow
+                        key={classItem.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            <span className="font-semibold">{classItem.name}</span>
+                            <span className="font-semibold">
+                              {classItem.name}
+                            </span>
                             <span className="line-clamp-1 text-sm text-muted-foreground">
-                              {classItem.description || 'Sem descrição'}
+                              {classItem.description || "Sem descrição"}
                             </span>
                           </div>
                         </TableCell>
@@ -961,7 +1154,9 @@ export function ClassManagement() {
                               variant="outline"
                               size="sm"
                               className="gap-2"
-                              onClick={() => handleCopyClassCode(classItem.code)}
+                              onClick={() =>
+                                handleCopyClassCode(classItem.code)
+                              }
                             >
                               {classItem.code}
                               <Copy className="h-3 w-3" />
@@ -979,7 +1174,12 @@ export function ClassManagement() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => window.open(`https://coderbot.space/class/${classItem.id}`, '_blank')}
+                                  onClick={() =>
+                                    window.open(
+                                      `https://coderbot.space/class/${classItem.id}`,
+                                      "_blank"
+                                    )
+                                  }
                                   aria-label="Acessar fórum"
                                 >
                                   <MessageSquare className="h-4 w-4" />
@@ -1049,6 +1249,8 @@ export function ClassManagement() {
             </Card>
           )}
 
+          
+
           <Dialog open={editOpen} onOpenChange={setEditOpen}>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
@@ -1064,7 +1266,9 @@ export function ClassManagement() {
                     <Input
                       id="edit-name"
                       value={editClass.name}
-                      onChange={(e) => setEditClass({ ...editClass, name: e.target.value })}
+                      onChange={(e) =>
+                        setEditClass({ ...editClass, name: e.target.value })
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -1072,7 +1276,12 @@ export function ClassManagement() {
                     <Textarea
                       id="edit-description"
                       value={editClass.description || ""}
-                      onChange={(e) => setEditClass({ ...editClass, description: e.target.value })}
+                      onChange={(e) =>
+                        setEditClass({
+                          ...editClass,
+                          description: e.target.value,
+                        })
+                      }
                       rows={3}
                     />
                   </div>
@@ -1082,9 +1291,7 @@ export function ClassManagement() {
                 <Button variant="outline" onClick={() => setEditOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleUpdateClass}>
-                  Salvar Alterações
-                </Button>
+                <Button onClick={handleUpdateClass}>Salvar Alterações</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -1099,8 +1306,11 @@ export function ClassManagement() {
               </DialogHeader>
               <div className="py-4">
                 <p className="text-sm">
-                  Tem certeza que deseja excluir a turma{' '}
-                  <span className="font-semibold">{deleteClass_selected?.name}</span>?
+                  Tem certeza que deseja excluir a turma{" "}
+                  <span className="font-semibold">
+                    {deleteClass_selected?.name}
+                  </span>
+                  ?
                 </p>
               </div>
               <DialogFooter>
@@ -1134,7 +1344,9 @@ export function ClassManagement() {
                         placeholder="Buscar por email ou nome..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearchUsers()}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && handleSearchUsers()
+                        }
                         className="bg-white border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800"
                       />
                       <Button onClick={handleSearchUsers} disabled={searching}>
@@ -1147,7 +1359,9 @@ export function ClassManagement() {
                     </div>
                     <Select
                       value={newMemberRole}
-                      onValueChange={(value) => setNewMemberRole(value as 'student' | 'teacher')}
+                      onValueChange={(value) =>
+                        setNewMemberRole(value as "student" | "teacher")
+                      }
                     >
                       <SelectTrigger className="w-full bg-white md:w-[200px] border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800">
                         <SelectValue placeholder="Adicionar como" />
@@ -1159,7 +1373,8 @@ export function ClassManagement() {
                     </Select>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    O membro convidado receberá acesso imediato assim que for adicionado.
+                    O membro convidado receberá acesso imediato assim que for
+                    adicionado.
                   </p>
                 </div>
 
@@ -1172,12 +1387,16 @@ export function ClassManagement() {
                       >
                         <div className="flex flex-1 flex-col">
                           <span className="font-medium">{user.name}</span>
-                          <span className="text-sm text-muted-foreground">{user.email}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {user.email}
+                          </span>
                         </div>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleAddMember(user.id, newMemberRole)}
+                          onClick={() =>
+                            handleAddMember(user.id, newMemberRole)
+                          }
                         >
                           <UserPlus className="mr-2 h-4 w-4" />
                           Adicionar
@@ -1205,7 +1424,9 @@ export function ClassManagement() {
                     </div>
                     <Select
                       value={memberRoleFilter}
-                      onValueChange={(value) => setMemberRoleFilter(value as MemberRoleFilter)}
+                      onValueChange={(value) =>
+                        setMemberRoleFilter(value as MemberRoleFilter)
+                      }
                     >
                       <SelectTrigger className="w-full bg-white md:w-[200px] border-slate-200 shadow-sm dark:bg-slate-950 dark:border-slate-800">
                         <SelectValue placeholder="Filtrar por papel" />
@@ -1245,22 +1466,34 @@ export function ClassManagement() {
                           {filteredMembers.map((member) => (
                             <TableRow key={member.id}>
                               <TableCell className="font-medium">
-                                {member.expand?.user?.name || 'N/A'}
+                                {member.expand?.user?.name || "N/A"}
                               </TableCell>
-                              <TableCell>{member.expand?.user?.email || 'N/A'}</TableCell>
                               <TableCell>
-                                <Badge variant={member.role === 'teacher' ? 'default' : 'secondary'}>
-                                  {member.role === 'teacher' ? 'Professor' : 'Aluno'}
+                                {member.expand?.user?.email || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    member.role === "teacher"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                >
+                                  {member.role === "teacher"
+                                    ? "Professor"
+                                    : "Aluno"}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">
-                                {member.role !== 'teacher' && (
+                                {member.role !== "teacher" && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
                                         size="icon"
                                         variant="ghost"
-                                        onClick={() => handleRemoveMember(member.id)}
+                                        onClick={() =>
+                                          handleRemoveMember(member.id)
+                                        }
                                         aria-label="Remover membro"
                                       >
                                         <X className="h-4 w-4 text-destructive" />

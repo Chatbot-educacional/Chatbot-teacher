@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import { captureEvent, initPosthog } from "@/lib/analytics";
 import { ClassManagement } from "./components/dashboard/ClassManagement";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { ActivityManagement } from "./components/dashboard/ActivityManagement";
 
 
 const queryClient = new QueryClient();
@@ -95,6 +96,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRole="teacher">
                     <Index />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/atividades/:classId" 
+                element={
+                  <ProtectedRoute requiredRole="teacher">
+                    <ActivityManagement />
                   </ProtectedRoute>
                 } 
               />
