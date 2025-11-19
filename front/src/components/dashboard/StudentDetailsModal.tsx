@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Loader2, User, CheckCircle2, Clock } from "lucide-react";
+import { getAvatarUrl, UserRecord } from "@/lib/pocketbase";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Loader2, CheckCircle2, Clock, User } from "lucide-react";
 import { pb } from "@/lib/pocketbase";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -20,7 +22,7 @@ export function StudentDetailsModal({ studentId, studentName, email }) {
     setLoading(true);
     try {
       // 🔹 Busca o usuário
-      const user = await pb.collection("users").getOne(studentId);
+      const user = await pb.collection("users").getOne<UserRecord>(studentId);
 
       // 🔹 Busca submissões do aluno (última tarefa enviada)
       let lastSubmission = null;
@@ -65,8 +67,10 @@ export function StudentDetailsModal({ studentId, studentName, email }) {
         : 0;
 
       // 🔹 Atualiza o estado final
+      const avatarUrl = getAvatarUrl(user);
       setStats({
         name: user.name,
+        avatarUrl,
         email: user.email,
         lastLogin: user.updated || "—",
         lastSubmission,
@@ -132,9 +136,14 @@ export function StudentDetailsModal({ studentId, studentName, email }) {
           <div className="space-y-5 py-4 text-sm">
             {/* 👤 Nome e e-mail */}
             <div className="flex items-center gap-3">
-              <User className="w-5 h-5 text-gray-500" />
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={stats.avatarUrl} alt={stats.name} />
+                <AvatarFallback>
+                  {stats.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
               <div>
-                <p className="font-semibold">{stats.name}</p>
+                <p className="font-semibold text-base">{stats.name}</p>
                 <p className="text-muted-foreground text-xs">{stats.email}</p>
               </div>
             </div>
