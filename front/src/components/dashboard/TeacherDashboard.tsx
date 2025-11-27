@@ -103,7 +103,7 @@ export function TeacherDashboard() {
     });
 
   return (
-    <div className="min-h-screen bg-gradient-bg">
+    <div className="min-h-screen">
       {/* Fixed Header */}
       <div className="sticky top-0 z-40">
         <DashboardHeader />
