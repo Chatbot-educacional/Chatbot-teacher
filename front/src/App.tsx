@@ -101,7 +101,7 @@ const App = () => (
                 } 
               />
               <Route 
-                path="/teacher/atividades/:classId" 
+                path="/atividades/:classId" 
                 element={
                   <ProtectedRoute requiredRole="teacher">
                     <ActivityManagement />
@@ -109,7 +109,7 @@ const App = () => (
                 } 
               />
               <Route 
-                path="/teacher/entregas/:activityId" 
+                path="/entregas/:activityId" 
                 element={
                   <ProtectedRoute requiredRole="teacher">
                     <ActivitySubmissions />
