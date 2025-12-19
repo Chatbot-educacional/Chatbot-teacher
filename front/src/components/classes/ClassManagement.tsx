@@ -164,7 +164,7 @@ export function ClassManagement() {
   };
 
   const handleDelete = async (classItem: ClassRecord) => {
-    if (!confirm(`Tem certeza que deseja excluir a turma "${classItem.name}"?`)) {
+    if (!confirm(`Deseja excluir a turma "${classItem.name}"?`)) {
       return;
     }
 
