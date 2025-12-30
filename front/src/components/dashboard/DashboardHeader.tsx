@@ -31,8 +31,8 @@ export function DashboardHeader() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">{user?.name || "Professor"}</h1>
-            <p className="text-primary-foreground/80">
+            <h1 className="text-2xl font-bold text-white">{user?.name || "Professor"}</h1>
+            <p className="text-white/80">
               {user?.role === "teacher"
                 ? "Dashboard do Professor"
                 : "Dashboard"}
@@ -63,7 +63,7 @@ export function DashboardHeader() {
 
         {/* Filters Row */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-white">
             <Filter className="h-4 w-4" />
             <span className="text-sm font-medium">Filtros:</span>
           </div>

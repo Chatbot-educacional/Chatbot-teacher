@@ -662,3 +662,19 @@ export const deleteClassForumComment = async (commentId: string): Promise<boolea
     return false;
   }
 };
+
+/**
+ * Gera a URL completa para o avatar do usuário.
+ * @param user O registro do usuário (UserRecord).
+ * @param size O tamanho da imagem (opcional, para otimização).
+ * @returns A URL completa do avatar ou null se não houver avatar.
+ */
+export const getAvatarUrl = (user: UserRecord, size: string = '80x80'): string | null => {
+  if (!user.avatar) {
+    return null;
+  }
+
+  // O PocketBase usa a URL base + collectionName + recordId + filename
+  // O parâmetro 'thumb' é usado para redimensionamento
+  return pb.files.getUrl(user, user.avatar, { thumb: size });
+};
