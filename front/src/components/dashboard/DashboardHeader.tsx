@@ -38,15 +38,7 @@ export function DashboardHeader() {
           </div>
           <div className="flex gap-2">
             <ThemeToggle />
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-              onClick={() => navigate("/generate-lesson-plan")}
-            >
-              <School className="h-4 w-4 mr-2" />
-              Criar Aula
-            </Button>
+
             <Button
               variant="outline"
               size="sm"

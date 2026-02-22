@@ -102,7 +102,7 @@ const App = () => (
                 }
               />
               <Route
-                path="/generate-lesson-plan"
+                path="/planos/:classId"
                 element={
                   <ProtectedRoute requiredRole="teacher">
                     <LessonPlanGenerator />

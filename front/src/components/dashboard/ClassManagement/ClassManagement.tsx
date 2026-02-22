@@ -453,9 +453,9 @@ export function ClassManagement() {
       setSelectedClassForMembers((prev) =>
         prev
           ? {
-              ...prev,
-              memberCount: membersData.length,
-            }
+            ...prev,
+            memberCount: membersData.length,
+          }
           : null
       );
       setNewMemberRole("student");
@@ -494,9 +494,9 @@ export function ClassManagement() {
       setSelectedClassForMembers((prev) =>
         prev
           ? {
-              ...prev,
-              memberCount: membersData.length,
-            }
+            ...prev,
+            memberCount: membersData.length,
+          }
           : null
       );
     } catch (error) {
@@ -532,10 +532,10 @@ export function ClassManagement() {
       const memberHeader = ["Nome", "Email", "Papel"];
       const memberRows = membersList.length
         ? membersList.map((member) => [
-            member.expand?.user?.name || "Sem nome",
-            member.expand?.user?.email || "-",
-            member.role === "teacher" ? "Professor" : "Aluno",
-          ])
+          member.expand?.user?.name || "Sem nome",
+          member.expand?.user?.email || "-",
+          member.role === "teacher" ? "Professor" : "Aluno",
+        ])
         : [["Nenhum membro cadastrado", "", ""]];
 
       const csvSections = [
@@ -959,7 +959,7 @@ export function ClassManagement() {
               {filteredClasses.map((classItem) => {
                 const isNew = classItem.created
                   ? Date.now() - new Date(classItem.created).getTime() <
-                    1000 * 60 * 60 * 24 * 7
+                  1000 * 60 * 60 * 24 * 7
                   : false;
 
                 return (
@@ -1049,6 +1049,16 @@ export function ClassManagement() {
                       >
                         <Book className="mr-2 h-4 w-4" />
                         Atividades
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 bg-black text-white hover:bg-gray-800 "
+                        onClick={() => navigate(`/planos/${classItem.id}`)}
+                      >
+                        <School className="h-4 w-4 mr-2" />
+                        Criar Aula
                       </Button>
 
                       <Button
@@ -1483,8 +1493,8 @@ export function ClassManagement() {
                               <TableCell>
                                 {member.expand?.user?.length
                                   ? member.expand.user
-                                      .map((u) => u.email)
-                                      .join(", ")
+                                    .map((u) => u.email)
+                                    .join(", ")
                                   : "N/A"}
                               </TableCell>
                               <TableCell>
