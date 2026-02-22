@@ -9,10 +9,11 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { captureEvent, initPosthog } from "@/lib/analytics";
-import { ClassManagement } from "./components/dashboard/ClassManagement";
+import { ClassManagement } from "./components/dashboard/ClassManagement/ClassManagement";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { ActivityManagement } from "./components/dashboard/ActivityManagement";
+import { ActivityManagement } from "./components/dashboard/ClassManagement/ActivityManagement";
 import { ActivitySubmissions } from "./components/dashboard/ActivitySubmissions";
+import LessonPlanGenerator from "./components/dashboard/CreateLessonPlan/LessonPlanGenerator";
 
 
 const queryClient = new QueryClient();
@@ -85,44 +86,52 @@ const PosthogManager = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <ThemeProvider>  
+      <ThemeProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter basename={routerBase === "/" ? undefined : routerBase}>
             <PosthogManager />
             <Routes>
-              <Route 
-                path="/" 
+              <Route
+                path="/"
                 element={
                   <ProtectedRoute requiredRole="teacher">
                     <Index />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/atividades/:classId" 
+              <Route
+                path="/generate-lesson-plan"
+                element={
+                  <ProtectedRoute requiredRole="teacher">
+                    <LessonPlanGenerator />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/atividades/:classId"
                 element={
                   <ProtectedRoute requiredRole="teacher">
                     <ActivityManagement />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/entregas/:activityId" 
+              <Route
+                path="/entregas/:activityId"
                 element={
                   <ProtectedRoute requiredRole="teacher">
                     <ActivitySubmissions />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/classes" 
+              <Route
+                path="/classes"
                 element={
                   <ProtectedRoute requiredRole="teacher">
                     <ClassManagement />
                   </ProtectedRoute>
-                } 
+                }
               />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
