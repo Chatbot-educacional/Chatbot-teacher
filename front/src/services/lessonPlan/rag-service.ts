@@ -1,40 +1,72 @@
+// services/lessonPlan/rag-service.ts
 import { generateWithOllama } from "../ollama-service";
 
-export async function generateLessonPlan(params) {
+interface GenerateLessonPlanParams {
+  discipline: string;
+  course: string;
+  workload: number;
+  totalLessons: number;
+  lessonDuration: number;
+  syllabus?: string;
+  generalObjective?: string;
+  textChunks?: string[];
+}
 
-  const duracao = params.duracaoAula
-    ? `${params.duracaoAula} minutos`
-    : "Não definida";
-
-  const objetivo = params.objetivoGeral?.trim()
-    ? params.objetivoGeral
-    : "Não informado";
-
+export async function generateLessonPlan(params: GenerateLessonPlanParams) {
   const prompt = `
-Gere um plano de aula em formato Markdown estruturado.
+    Você é especialista em planejamento pedagógico universitário.
 
-# Plano de Aula
+    Gere um plano de aula único em formato JSON.
 
-**Quantidade de aulas:** ${params.quantidadeAulas}  
-**Duração de cada aula:** ${duracao}  
-**Ementa:** ${params.ementa}  
-**Objetivo geral:** ${objetivo}
+    ⚠️ Retorne APENAS JSON válido.
+    ⚠️ Não use markdown.
+    ⚠️ Não explique nada.
+    ⚠️ Nunca retorne undefined.
 
----
+    Formato EXATO:
 
-Estruture assim:
+    {
+      "syllabus": string,
+      "general_objective": string,
+      "specific_objectives": string[],
+      "methodology": string,
+      "assessment": string,
+      "basic_references": string[],
+      "complementary_references": string[]
+    }
 
-## Aula 1
-### Objetivos
-### Conteúdo
-### Metodologia
-### Avaliação
-`;
+    Dados:
+    Disciplina: ${params.discipline}
+    Curso: ${params.course}
+    Carga horária: ${params.workload}
+    Duração da aula: ${params.lessonDuration}
+    Ordem da aula: ${params.totalLessons}
+    Ementa base: ${params.syllabus}
+    Objetivo geral base: ${params.generalObjective}
+  `;
 
-  const response = await generateWithOllama({
-    prompt,
-    stream: false
-  });
+  const response = await generateWithOllama(prompt);
 
-  return response;
+  if (!response || response.trim().length === 0) {
+    throw new Error("IA retornou vazio.");
+  }
+
+  let cleaned = response
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  // Extrair apenas o JSON entre {}
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (error) {
+    throw new Error("IA retornou JSON inválido ou incompleto.");
+  }
 }

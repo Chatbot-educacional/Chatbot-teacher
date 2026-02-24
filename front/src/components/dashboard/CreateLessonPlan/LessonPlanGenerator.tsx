@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+
 import {
     Dialog,
     DialogContent,
@@ -21,58 +22,66 @@ import { generateLessonPlan } from "@/services/lessonPlan/rag-service";
 import { saveLessonPlan } from "@/services/lessonPlan/saveLessonPlan";
 import { getLessonPlanByClass } from "@/services/lessonPlan/getLessonPlan";
 
-import { generateLessons } from "@/services/lessonPlan/lesson-stream-service";
-
-
 export default function GenerateLessonPlan() {
     const navigate = useNavigate();
     const { toast } = useToast();
     const { classId } = useParams<{ classId: string }>();
 
     const [file, setFile] = useState<File | null>(null);
+    const [discipline, setDiscipline] = useState("");
+    const [course, setCourse] = useState("");
+    const [workload, setWorkload] = useState("");
     const [quantidadeAulas, setQuantidadeAulas] = useState("");
     const [duracaoAula, setDuracaoAula] = useState("");
     const [ementa, setEmenta] = useState("");
     const [objetivoGeral, setObjetivoGeral] = useState("");
 
+    const [generatedLessons, setGeneratedLessons] = useState<any[]>([]);
+    const [lessonStatus, setLessonStatus] = useState<string[]>([]);
+
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-
-    const [editablePlan, setEditablePlan] = useState<any>(null);
-    const [existingPlanId, setExistingPlanId] = useState<string | null>(null);
-
     const [showModal, setShowModal] = useState(false);
-    const [creatingLessons, setCreatingLessons] = useState(false);
+    const [currentLessonIndex, setCurrentLessonIndex] = useState<number | null>(null);
 
-    // 🔥 Carregar plano existente
+    /*
+    =========================
+    CARREGAR AULAS DO BANCO
+    =========================
+    */
+
     useEffect(() => {
-        const loadPlan = async () => {
+        const loadLessonPlan = async () => {
             if (!classId) return;
 
             try {
-                const plan = await getLessonPlanByClass(classId);
+                const response = await getLessonPlanByClass(classId);
 
-                if (plan) {
-                    setExistingPlanId(plan.id);
-                    setResult(plan.content);
-                    setEditablePlan(plan.content);
+                console.log("LESSONS FROM PB:", response);
 
-                    setQuantidadeAulas(String(plan.totalLessons || ""));
-                    setDuracaoAula(String(plan.lessonDuration || ""));
-                    setEmenta(plan.syllabus || "");
-                    setObjetivoGeral(plan.generalObjective || "");
-                }
-            } catch (error) {
-                console.error("Erro ao carregar plano:", error);
+                if (!response) return;
+
+                const lessons = Array.isArray(response) ? response : [response];
+
+                setGeneratedLessons(lessons);
+            } catch (err) {
+                toast({
+                    title: "Erro ao carregar plano de aula",
+                    variant: "destructive",
+                });
             }
         };
 
-        loadPlan();
-    }, [classId]);
+        loadLessonPlan();
+    }, [classId, toast]);
 
-    // 🔥 Gerar plano com IA
+    /*
+    =========================
+    GERAR PLANO COM IA
+    =========================
+    */
+
     const handleGenerate = async () => {
-        if (!file || !quantidadeAulas || !duracaoAula || !ementa) {
+        if (!file || !discipline || !course || !workload || !quantidadeAulas) {
             toast({
                 title: "Preencha todos os campos obrigatórios",
                 variant: "destructive",
@@ -80,21 +89,36 @@ export default function GenerateLessonPlan() {
             return;
         }
 
-        try {
-            setLoading(true);
+        setLoading(true);
 
+        try {
             const text = await extractTextFromPDF(file);
             const chunks = chunkText(text);
 
-            const lessonPlan = await generateLessonPlan({
-                textChunks: chunks,
-                quantidadeAulas: Number(quantidadeAulas),
-                duracaoAula: Number(duracaoAula),
-                ementa,
-                objetivoGeral,
-            });
+            const generated: any[] = [];
 
-            setEditablePlan(lessonPlan);
+            for (let i = 1; i <= Number(quantidadeAulas); i++) {
+                const aiPlan = await generateLessonPlan({
+                    discipline,
+                    course,
+                    workload: Number(workload),
+                    totalLessons: Number(quantidadeAulas),
+                    lessonDuration: Number(duracaoAula),
+                    syllabus: ementa,
+                    generalObjective: objetivoGeral,
+                    textChunks: chunks,
+                });
+
+                generated.push({
+                    ...aiPlan,
+                    lessonOrder: i,
+                });
+            }
+
+            setGeneratedLessons(generated);
+            setLessonStatus(new Array(generated.length).fill("pending"));
+
+            setCurrentLessonIndex(0);
             setShowModal(true);
         } catch (err) {
             toast({
@@ -106,227 +130,234 @@ export default function GenerateLessonPlan() {
         }
     };
 
-    // 🔥 Salvar (create ou update)
+    /*
+    =========================
+    CONFIRMAR AULA
+    =========================
+    */
 
-    const handleSave = async () => {
+    const handleConfirmLesson = (index: number) => {
+        const status = [...lessonStatus];
+        status[index] = "approved";
+        setLessonStatus(status);
+
+        setShowModal(false);
+    };
+
+    /*
+    =========================
+    SALVAR AULAS
+    =========================
+    */
+
+    const handleSaveLessons = async () => {
         try {
-            if (!classId) return;
+            setLoading(true);
 
-            setCreatingLessons(true);
+            for (const lesson of generatedLessons) {
+                await saveLessonPlan({
+                    class_id: classId,
+                    discipline,
+                    course,
+                    workload: Number(workload),
+                    totalLessons: Number(quantidadeAulas),
+                    lessonDuration: Number(duracaoAula),
 
-            toast({
-                title: "Criando aulas e atividades...",
-                description: "Isso pode levar alguns segundos.",
-            });
+                    syllabus: lesson.syllabus,
+                    general_objective: lesson.general_objective,
+                    specific_objectives: lesson.specific_objectives,
+                    methodology: lesson.methodology,
+                    assessment: lesson.assessment,
+                    basic_references: lesson.basic_references,
+                    complementary_references: lesson.complementary_references,
 
-            const record = await saveLessonPlan({
-                id: existingPlanId,
-                title: "Plano de Ensino",
-                content: editablePlan,
-                totalLessons: Number(quantidadeAulas),
-                lessonDuration: Number(duracaoAula),
-                syllabus: ementa,
-                generalObjective: objetivoGeral,
-                status: "approved",
-                classId,
-            });
-
-            await generateLessons({
-                totalLessons: Number(quantidadeAulas),
-                syllabus: ementa,
-                lessonPlanId: record.id,
-                classId
-            });
+                    lessonOrder: lesson.lessonOrder,
+                    status: "approved",
+                });
+            }
 
             toast({
-                title: "Plano, aulas e atividades criados com sucesso!",
+                title: "Aulas salvas com sucesso!",
             });
-
-            setExistingPlanId(record.id);
-            setResult(editablePlan);
-            setShowModal(false);
-
         } catch (error) {
             toast({
-                title: "Erro ao criar aulas",
+                title: "Erro ao salvar as aulas",
                 variant: "destructive",
             });
-            console.error(error);
         } finally {
-            setCreatingLessons(false);
+            setLoading(false);
         }
     };
 
-    return (
-        <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
-            <div className="container mx-auto p-6 space-y-6">
+    /*
+    =========================
+    RENDER
+    =========================
+    */
 
-                {/* HEADER */}
+    return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+            <div className="container mx-auto p-8 space-y-8">
+
                 <div className="flex items-center gap-4">
                     <Button onClick={() => navigate(-1)} variant="ghost" size="icon">
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
 
-                    <div>
-                        <h1 className="text-3xl font-bold">Plano de Ensino</h1>
-                        <p className="text-muted-foreground">
-                            Crie e gerencie o plano da turma
-                        </p>
-                    </div>
+                    <h1 className="text-3xl font-semibold">Plano de Ensino</h1>
                 </div>
 
-                {/* VISUALIZAÇÃO */}
-                {result ? (
-                    <Card>
-                        <CardContent className="p-8 space-y-6">
-                            <div className="flex justify-between items-center">
-                                <h2 className="text-xl font-semibold">Plano Atual</h2>
+                {/* FORM */}
 
-                                <Button onClick={() => setShowModal(true)}>
-                                    Editar Plano
-                                </Button>
-                            </div>
+                <Card className="p-6">
+                    <CardContent className="space-y-4">
 
-                            <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border whitespace-pre-wrap">
-                                {result}
-                            </div>
+                        <Input
+                            placeholder="Disciplina"
+                            value={discipline}
+                            onChange={(e) => setDiscipline(e.target.value)}
+                        />
+
+                        <Input
+                            placeholder="Curso"
+                            value={course}
+                            onChange={(e) => setCourse(e.target.value)}
+                        />
+
+                        <Input
+                            type="number"
+                            placeholder="Carga Horária"
+                            value={workload}
+                            onChange={(e) => setWorkload(e.target.value)}
+                        />
+
+                        <Input
+                            type="number"
+                            placeholder="Quantidade de Aulas"
+                            value={quantidadeAulas}
+                            onChange={(e) => setQuantidadeAulas(e.target.value)}
+                        />
+
+                        <Input
+                            type="number"
+                            placeholder="Duração da Aula (min)"
+                            value={duracaoAula}
+                            onChange={(e) => setDuracaoAula(e.target.value)}
+                        />
+
+                        <Textarea
+                            placeholder="Ementa"
+                            value={ementa}
+                            onChange={(e) => setEmenta(e.target.value)}
+                        />
+
+                        <Textarea
+                            placeholder="Objetivo Geral"
+                            value={objetivoGeral}
+                            onChange={(e) => setObjetivoGeral(e.target.value)}
+                        />
+
+                        <Input
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e) =>
+                                setFile(e.target.files ? e.target.files[0] : null)
+                            }
+                        />
+
+                        <Button onClick={handleGenerate} disabled={loading}>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            {loading ? "Gerando..." : "Gerar Plano de Aula"}
+                        </Button>
+
+                    </CardContent>
+                </Card>
+
+                {/* LISTA */}
+
+                {generatedLessons.length > 0 ? (
+                    <Card className="p-6">
+                        <CardContent>
+
+                            <h2 className="text-xl font-semibold mb-4">
+                                Aulas Geradas
+                            </h2>
+
+                            <ul className="space-y-4">
+                                {generatedLessons.map((lesson, index) => (
+                                    <li
+                                        key={lesson.id || index}
+                                        className="flex justify-between items-center"
+                                    >
+                                        <strong>
+                                            Aula {lesson.lessonOrder || index + 1}
+                                        </strong>
+
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                setCurrentLessonIndex(index);
+                                                setShowModal(true);
+                                            }}
+                                        >
+                                            Revisar
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <Button
+                                className="w-full mt-6 bg-green-600 hover:bg-green-700"
+                                onClick={handleSaveLessons}
+                            >
+                                Salvar Aulas
+                            </Button>
+
                         </CardContent>
                     </Card>
                 ) : (
-                    <>
-                        {/* CONFIGURAÇÃO */}
-                        <Card>
-                            <CardContent className="p-6 space-y-4">
-                                <h2 className="text-lg font-semibold">Configuração</h2>
-
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <Input
-                                        type="number"
-                                        placeholder="Quantidade de aulas"
-                                        value={quantidadeAulas}
-                                        onChange={(e) => setQuantidadeAulas(e.target.value)}
-                                    />
-
-                                    <Input
-                                        type="number"
-                                        placeholder="Duração (min)"
-                                        value={duracaoAula}
-                                        onChange={(e) => setDuracaoAula(e.target.value)}
-                                    />
-                                </div>
-
-                                <Textarea
-                                    placeholder="Ementa"
-                                    value={ementa}
-                                    onChange={(e) => setEmenta(e.target.value)}
-                                />
-
-                                <Textarea
-                                    placeholder="Objetivo Geral"
-                                    value={objetivoGeral}
-                                    onChange={(e) => setObjetivoGeral(e.target.value)}
-                                />
-                            </CardContent>
-                        </Card>
-
-                        {/* UPLOAD */}
-                        <Card>
-                            <CardContent className="p-6 space-y-4">
-                                <Input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={(e) =>
-                                        setFile(e.target.files ? e.target.files[0] : null)
-                                    }
-                                />
-
-                                <Button
-                                    onClick={handleGenerate}
-                                    disabled={loading}
-                                    className="w-full"
-                                >
-                                    <Sparkles className="h-4 w-4 mr-2" />
-                                    {loading ? "Gerando..." : "Gerar Plano"}
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </>
+                    <div className="text-center text-gray-500">
+                        Nenhuma aula gerada ainda.
+                    </div>
                 )}
+
             </div>
 
-            {/* MODAL DE EDIÇÃO COMPLETA */}
+            {/* MODAL */}
+
             <Dialog open={showModal} onOpenChange={setShowModal}>
-                <DialogContent className="max-w-4xl space-y-4">
+                <DialogContent className="max-w-4xl">
+
                     <DialogHeader>
-                        <DialogTitle>Editar Plano de Ensino</DialogTitle>
+                        <DialogTitle>Revisar Aula</DialogTitle>
                     </DialogHeader>
 
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <Input
-                            type="number"
-                            value={quantidadeAulas}
-                            onChange={(e) => setQuantidadeAulas(e.target.value)}
-                            placeholder="Quantidade de aulas"
+                    {currentLessonIndex !== null && (
+                        <Textarea
+                            className="min-h-[400px] font-mono"
+                            value={JSON.stringify(
+                                generatedLessons[currentLessonIndex],
+                                null,
+                                2
+                            )}
+                            onChange={(e) => {
+                                const updated = [...generatedLessons];
+                                updated[currentLessonIndex] = JSON.parse(e.target.value);
+                                setGeneratedLessons(updated);
+                            }}
                         />
+                    )}
 
-                        <Input
-                            type="number"
-                            value={duracaoAula}
-                            onChange={(e) => setDuracaoAula(e.target.value)}
-                            placeholder="Duração (min)"
-                        />
-                    </div>
-
-                    <Textarea
-                        value={ementa}
-                        onChange={(e) => setEmenta(e.target.value)}
-                        placeholder="Ementa"
-                    />
-
-                    <Textarea
-                        value={objetivoGeral}
-                        onChange={(e) => setObjetivoGeral(e.target.value)}
-                        placeholder="Objetivo Geral"
-                    />
-
-                    <Textarea
-                        value={editablePlan}
-                        onChange={(e) => setEditablePlan(e.target.value)}
-                        className="min-h-[300px] font-mono"
-                    />
-                    {editablePlan?.lessons?.map((lesson, index) => (
-                        <div key={index} className="border rounded p-4 space-y-3 bg-slate-50 dark:bg-slate-900">
-                            <h3 className="font-semibold">Aula {lesson.order}</h3>
-
-                            <Textarea
-                                value={lesson.objectives.join("\n")}
-                                onChange={(e) => {
-                                    const updated = { ...editablePlan }
-                                    updated.lessons[index].objectives = e.target.value.split("\n")
-                                    setEditablePlan(updated)
-                                }}
-                                placeholder="Objetivos (1 por linha)"
-                            />
-
-                            <Textarea
-                                value={lesson.contents.join("\n")}
-                                onChange={(e) => {
-                                    const updated = { ...editablePlan }
-                                    updated.lessons[index].contents = e.target.value.split("\n")
-                                    setEditablePlan(updated)
-                                }}
-                                placeholder="Conteúdo (1 por linha)"
-                            />
-                        </div>
-                    ))}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowModal(false)}>
-                            Cancelar
-                        </Button>
-                        <Button onClick={handleSave} disabled={creatingLessons}>
-                            {creatingLessons ? "Criando aulas..." : "Salvar Alterações"}
+                        <Button
+                            onClick={() =>
+                                handleConfirmLesson(currentLessonIndex ?? 0)
+                            }
+                        >
+                            Confirmar Aula
                         </Button>
                     </DialogFooter>
+
                 </DialogContent>
             </Dialog>
         </div>
