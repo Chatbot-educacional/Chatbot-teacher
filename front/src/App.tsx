@@ -13,7 +13,8 @@ import { ClassManagement } from "./components/dashboard/ClassManagement/ClassMan
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ActivityManagement } from "./components/dashboard/ClassManagement/ActivityManagement";
 import { ActivitySubmissions } from "./components/dashboard/ActivitySubmissions";
-import LessonPlanGenerator from "./components/dashboard/CreateLessonPlan/LessonPlanGenerator";
+import IndexLesson from "./pages/lesson/pages/Index";
+import CreateLessonPlan from "./pages/lesson/pages/CreateLessonPlan";
 
 
 const queryClient = new QueryClient();
@@ -105,7 +106,15 @@ const App = () => (
                 path="/planos/:classId"
                 element={
                   <ProtectedRoute requiredRole="teacher">
-                    <LessonPlanGenerator />
+                    <CreateLessonPlan />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/planos/:classId"
+                element={
+                  <ProtectedRoute requiredRole="teacher">
+                    <CreateLessonPlan />
                   </ProtectedRoute>
                 }
               />

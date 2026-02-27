@@ -123,3 +123,31 @@
     @apply bg-background text-foreground;
   }
 }
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+
+  code, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(234 62% 42%), hsl(258 60% 52%));
+  }
+
+  .gradient-accent {
+    background: linear-gradient(135deg, hsl(38 92% 50%), hsl(28 90% 55%));
+  }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-md border border-border/50 shadow-lg;
+  }
+}
