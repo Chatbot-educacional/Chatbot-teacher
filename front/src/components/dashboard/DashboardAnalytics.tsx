@@ -5,7 +5,8 @@ import {
   getDashboardAnalytics,
   DashboardAnalyticsResponse
 } from "@/services/analytics-services";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { pb } from "@/lib/pocketbase";
 import {
   BarChart,
@@ -17,6 +18,17 @@ import {
   CartesianGrid,
   Cell
 } from "recharts";
+import {
+  Clock,
+  Users,
+  AlertTriangle,
+  Activity,
+  Target,
+  TrendingUp,
+  Brain,
+  BookOpen,
+  ShieldAlert
+} from "lucide-react";
 
 export function DashboardAnalytics() {
   const [data, setData] =
@@ -41,19 +53,29 @@ export function DashboardAnalytics() {
     load();
   }, []);
 
-  if (loading) return <p className="p-6">Carregando...</p>;
-  if (!data) return <p className="p-6">Erro ao carregar dados.</p>;
+  if (loading) return (
+    <div className="p-12 flex justify-center items-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  );
+
+  if (!data) return (
+    <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
+      <AlertTriangle className="h-10 w-10 text-destructive mb-3" />
+      <p>Não foi possível carregar os dados.</p>
+    </div>
+  );
 
   const { overview, students, alerts } = data;
 
-  const riskColor = (risk: string) => {
+  const getRiskBadge = (risk: string) => {
     switch (risk) {
       case "vermelho":
-        return "bg-red-500 text-white";
+        return <Badge variant="destructive" className="bg-red-500 hover:bg-red-600 text-white border-0">Alto Risco</Badge>;
       case "amarelo":
-        return "bg-yellow-500 text-black";
+        return <Badge variant="secondary" className="bg-amber-500 hover:bg-amber-600 text-white border-0">Atenção</Badge>;
       default:
-        return "bg-green-500 text-white";
+        return <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 text-white border-0">Bom</Badge>;
     }
   };
 
@@ -69,197 +91,278 @@ export function DashboardAnalytics() {
   });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="container mx-auto px-6 py-8 space-y-8 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* ===================== */}
-      {/* CONTEXTO GERAL */}
+      {/* OVERVIEW CARDS */}
       {/* ===================== */}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4">
-          <h3 className="text-sm text-muted-foreground">
-            Total de Sessões
-          </h3>
-          <p className="text-2xl font-bold">
-            {overview.totalSessions}
-          </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border-0 shadow-sm bg-blue-50/50 dark:bg-blue-950/20 backdrop-blur-sm relative overflow-hidden group">
+          <div className="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-bl-full transition-transform group-hover:scale-110" />
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total de Sessões</p>
+                <p className="text-4xl font-bold tracking-tight text-foreground">{overview.totalSessions}</p>
+              </div>
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/40 rounded-xl">
+                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4 flex items-center">
+              <TrendingUp className="h-3 w-3 mr-1 text-blue-500" />
+              Sessões ativas no período
+            </p>
+          </CardContent>
         </Card>
 
-        <Card className="p-4">
-          <h3 className="text-sm text-muted-foreground">
-            Tempo Médio por Aluno
-          </h3>
-          <p className="text-2xl font-bold">
-            {formatDuration(overview.classMeanDuration)}
-          </p>
+        <Card className="border-0 shadow-sm bg-purple-50/50 dark:bg-purple-950/20 backdrop-blur-sm relative overflow-hidden group">
+          <div className="absolute right-0 top-0 w-24 h-24 bg-purple-500/10 rounded-bl-full transition-transform group-hover:scale-110" />
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Tempo Médio</p>
+                <p className="text-4xl font-bold tracking-tight text-foreground">{formatDuration(overview.classMeanDuration)}</p>
+              </div>
+              <div className="p-3 bg-purple-100 dark:bg-purple-900/40 rounded-xl">
+                <Clock className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              Tempo médio de interação por aluno
+            </p>
+          </CardContent>
         </Card>
 
-        <Card className="p-4">
-          <h3 className="text-sm text-muted-foreground">
-            Alunos em Alerta
-          </h3>
-          <p className="text-2xl font-bold text-red-500">
-            {alerts.length}
-          </p>
+        <Card className="border-0 shadow-sm bg-red-50/50 dark:bg-red-950/20 backdrop-blur-sm relative overflow-hidden group">
+          <div className="absolute right-0 top-0 w-24 h-24 bg-red-500/10 rounded-bl-full transition-transform group-hover:scale-110" />
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-red-600 dark:text-red-400">Alunos em Alerta</p>
+                <p className="text-4xl font-bold tracking-tight text-red-600">{alerts.length}</p>
+              </div>
+              <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-xl">
+                <ShieldAlert className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+            </div>
+            <p className="text-xs text-red-500/80 mt-4 font-medium">
+              Alunos necessitando atenção imediata
+            </p>
+          </CardContent>
         </Card>
       </div>
 
-      {/* MÉDIAS DA TURMA */}
-      <Card className="p-4">
-        <h2 className="text-lg font-semibold mb-4">
-          Médias da Turma
-        </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* ===================== */}
+        {/* LEFT COLUMN */}
+        {/* ===================== */}
+        <div className="lg:col-span-2 space-y-8">
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <Metric label="Engajamento Médio" value={overview.classMeanEngagement} />
-          <Metric label="Desempenho Médio" value={overview.classMeanPerformance} />
-          <Metric label="Progresso Médio" value={overview.classMeanProgress} />
-          <Metric label="Autonomia Média" value={overview.classMeanAutonomy} />
-        </div>
-      </Card>
-
-      {/* ===================== */}
-      {/* ALERTAS */}
-      {/* ===================== */}
-
-      {alerts.length > 0 && (
-        <Card className="p-4 border-red-300">
-          <h2 className="text-lg font-semibold mb-4 text-red-600">
-            Alunos em Alerta
-          </h2>
-
-          <div className="space-y-2">
-            {alerts.map((student) => (
-              <div
-                key={student.studentId}
-                className="flex justify-between items-center border rounded p-2"
-              >
-                <span>{student.name}</span>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${riskColor(
-                    student.risk
-                  )}`}
-                >
-                  {student.risk.toUpperCase()}
-                </span>
+          {/* CLASS AVERAGES */}
+          <Card className="shadow-sm border-border/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Desempenho Geral da Turma
+              </CardTitle>
+              <CardDescription>Média das métricas consolidadas de todos os alunos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <MetricCard
+                  label="Engajamento"
+                  value={overview.classMeanEngagement}
+                  icon={<Activity className="h-4 w-4 text-orange-500" />}
+                  colorClass="bg-orange-500"
+                />
+                <MetricCard
+                  label="Desempenho"
+                  value={overview.classMeanPerformance}
+                  icon={<Target className="h-4 w-4 text-indigo-500" />}
+                  colorClass="bg-indigo-500"
+                />
+                <MetricCard
+                  label="Progresso"
+                  value={overview.classMeanProgress}
+                  icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
+                  colorClass="bg-emerald-500"
+                />
+                <MetricCard
+                  label="Autonomia"
+                  value={overview.classMeanAutonomy}
+                  icon={<Brain className="h-4 w-4 text-blue-500" />}
+                  colorClass="bg-blue-500"
+                />
               </div>
-            ))}
-          </div>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
 
-      {/* ===================== */}
-      {/* CONTEXTO INDIVIDUAL */}
-      {/* ===================== */}
-
-      <Card className="p-4">
-        <h2 className="text-lg font-semibold mb-4">
-          Métricas por Aluno
-        </h2>
-
-        <div className="space-y-4">
-          {sortedStudents.map((student) => (
-            <div
-              key={student.studentId}
-              className="border rounded-lg p-4 space-y-3"
-            >
-              <div className="flex justify-between items-center">
-                <p className="font-semibold">
-                  {student.name}
-                </p>
-
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${riskColor(
-                    student.risk
-                  )}`}
-                >
-                  {student.risk.toUpperCase()}
-                </span>
+          {/* STUDENTS LIST */}
+          <Card className="shadow-sm border-border/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <div>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  Métricas Individuais
+                </CardTitle>
+                <CardDescription>Visão detalhada do desenvolvimento por aluno</CardDescription>
               </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {sortedStudents.map((student) => (
+                  <div
+                    key={student.studentId}
+                    className="group border border-border/40 rounded-xl p-5 hover:bg-muted/30 transition-all hover:shadow-md bg-card relative overflow-hidden"
+                  >
+                    <div className="absolute left-0 top-0 w-1 h-full"
+                      style={{
+                        backgroundColor:
+                          student.risk === 'vermelho' ? '#ef4444' :
+                            student.risk === 'amarelo' ? '#f59e0b' :
+                              '#10b981'
+                      }}></div>
+                    <div className="flex justify-between items-center mb-5 pl-2">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                          {student.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-lg">{student.name}</p>
+                        </div>
+                      </div>
+                      <div>{getRiskBadge(student.risk)}</div>
+                    </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <Metric label="Engajamento" value={student.engagement} />
-                <Metric label="Desempenho" value={student.performance} />
-                <Metric label="Progresso" value={student.progress} />
-                <Metric label="Autonomia" value={student.autonomy} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-      <Card className="p-6 shadow-sm">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold">
-            Distribuição de Risco
-          </h2>
-          <span className="text-sm text-muted-foreground">
-            Situação atual da turma
-          </span>
-        </div>
-
-        <div className="w-full h-72">
-          <ResponsiveContainer>
-            <BarChart
-              layout="vertical"
-              data={[
-                { name: "Baixo Risco", value: overview.riskDistribution.verde, color: "#16a34a" },
-                { name: "Atenção", value: overview.riskDistribution.amarelo, color: "#f59e0b" },
-                { name: "Alto Risco", value: overview.riskDistribution.vermelho, color: "#dc2626" }
-              ]}
-              margin={{ top: 0, right: 20, left: 10, bottom: 0 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                horizontal={false}
-                opacity={0.15}
-              />
-              <XAxis type="number" allowDecimals={false} />
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={120}
-              />
-              <Tooltip
-                cursor={{ fill: "rgba(0,0,0,0.04)" }}
-              />
-              <Bar
-                dataKey="value"
-                radius={[8, 8, 8, 8]}
-                barSize={32}
-              >
-                {[
-                  "#16a34a",
-                  "#f59e0b",
-                  "#dc2626"
-                ].map((color, index) => (
-                  <Cell key={index} fill={color} />
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 bg-muted/20 p-4 rounded-lg ml-2">
+                      <MiniMetric label="Engajamento" value={student.engagement} colorClass="bg-orange-500" />
+                      <MiniMetric label="Desempenho" value={student.performance} colorClass="bg-indigo-500" />
+                      <MiniMetric label="Progresso" value={student.progress} colorClass="bg-emerald-500" />
+                      <MiniMetric label="Autonomia" value={student.autonomy} colorClass="bg-blue-500" />
+                    </div>
+                  </div>
                 ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </Card>
+
+        {/* ===================== */}
+        {/* RIGHT COLUMN */}
+        {/* ===================== */}
+        <div className="space-y-8">
+
+          {/* ALERTS */}
+          {alerts.length > 0 && (
+            <Card className="border-red-200 bg-red-50/30 shadow-sm relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1 bg-red-500" />
+              <CardHeader className="pb-3 border-b border-red-100 mb-3">
+                <CardTitle className="text-lg flex items-center gap-2 text-red-600">
+                  <AlertTriangle className="h-5 w-5" />
+                  Atenção Requerida
+                </CardTitle>
+                <CardDescription className="text-red-500/70">
+                  {alerts.length} aluno{alerts.length !== 1 ? 's' : ''} precisando de ajuda
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {alerts.map((student) => (
+                  <div
+                    key={student.studentId}
+                    className="flex justify-between items-center bg-white dark:bg-card border border-red-100 rounded-lg p-3 shadow-sm hover:shadow transition-shadow"
+                  >
+                    <span className="font-medium">{student.name}</span>
+                    {getRiskBadge(student.risk)}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* DISTRIBUTION CHART */}
+          <Card className="shadow-sm border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Distribuição da Turma</CardTitle>
+              <CardDescription>Visão geral dos níveis de risco</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full h-64 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    layout="vertical"
+                    data={[
+                      { name: "Bom", value: overview.riskDistribution.verde, color: "#10b981" },
+                      { name: "Atenção", value: overview.riskDistribution.amarelo, color: "#f59e0b" },
+                      { name: "Risco", value: overview.riskDistribution.vermelho, color: "#ef4444" }
+                    ]}
+                    margin={{ top: 0, right: 20, left: 10, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.3} />
+                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={60} tick={{ fill: '#555', fontSize: 13, fontWeight: 500 }} />
+                    <Tooltip
+                      cursor={{ fill: "rgba(0,0,0,0.05)" }}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
+                      {[
+                        "#10b981",
+                        "#f59e0b",
+                        "#ef4444"
+                      ].map((color, index) => (
+                        <Cell key={index} fill={color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function MetricCard({ label, value, icon, colorClass }: { label: string; value: number, icon: React.ReactNode, colorClass: string }) {
   const safeValue = Math.min(Math.max(value, 0), 100);
 
   return (
-    <div className="space-y-1">
-      <p className="text-muted-foreground">{label}</p>
-
-      <div className="w-full bg-muted rounded-full h-2">
+    <div className="relative overflow-hidden rounded-xl border border-border/50 bg-card p-4 transition-all hover:shadow-md">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <div className="p-1.5 rounded-md bg-muted/50">{icon}</div>
+      </div>
+      <div className="mb-2 flex items-baseline gap-1">
+        <span className="text-2xl font-bold">{safeValue.toFixed(1)}</span>
+        <span className="text-xs text-muted-foreground">%</span>
+      </div>
+      <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
         <div
-          className="bg-blue-500 h-2 rounded-full"
+          className={`h-full rounded-full ${colorClass} transition-all duration-1000 ease-out`}
           style={{ width: `${safeValue}%` }}
         />
       </div>
+    </div>
+  );
+}
 
-      <p className="text-xs font-medium">
-        {safeValue.toFixed(1)}
-      </p>
+function MiniMetric({ label, value, colorClass }: { label: string; value: number, colorClass: string }) {
+  const safeValue = Math.min(Math.max(value, 0), 100);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-center">
+        <p className="text-xs text-muted-foreground font-medium">{label}</p>
+        <span className="text-xs font-semibold">{safeValue.toFixed(0)}%</span>
+      </div>
+      <div className="w-full bg-white dark:bg-slate-800 rounded-full h-1.5 overflow-hidden shadow-inner">
+        <div
+          className={`h-full rounded-full ${colorClass}`}
+          style={{ width: `${safeValue}%` }}
+        />
+      </div>
     </div>
   );
 }
