@@ -10,9 +10,10 @@ export function TeacherDashboard() {
       {/* Fixed Header */}
       <div className="sticky top-0 z-40">
         <DashboardHeader />
-        <DashboardAnalytics />
       </div>
-
+      
+      {/* Main Content */}
+      <DashboardAnalytics />
     </div>
   );
 }

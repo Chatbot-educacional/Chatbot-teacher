@@ -37,24 +37,44 @@ export type DashboardAnalyticsResponse = {
 };
 
 export async function getDashboardAnalytics(
-  teacherId: string
+  teacherId: string,
+  classId?: string
 ): Promise<DashboardAnalyticsResponse> {
 
   const sessions = await pb.collection("sessions").getFullList({
     filter: `teacherId="${teacherId}"`
   });
-  console.log(sessions.length);
+  console.log("Total de sessões do professor:", sessions.length);
 
-  const totalSessions = sessions.length;
-  const totalDuration = sessions.reduce(
+  let studentIds: string[] = [];
+
+  // Se uma turma foi selecionada, buscar seus alunos
+  if (classId) {
+    console.log("Buscando alunos da turma:", classId);
+    const classMembers = await pb.collection("class_members").getFullList({
+      filter: `class="${classId}" && role="student"`
+    });
+    console.log("Membros da turma:", classMembers.length);
+    studentIds = classMembers.map(m => m.user);
+  } else {
+    // Se nenhuma turma selecionada, usar alunos que têm sessões
+    studentIds = [...new Set(sessions.map((s: any) => s.userId))];
+  }
+
+  console.log("IDs de alunos a processar:", studentIds);
+
+  // Filtrar sessões apenas dos alunos da turma
+  const filteredSessions = sessions.filter(s => studentIds.includes(s.userId));
+  console.log("Sessões filtradas da turma:", filteredSessions.length);
+
+  const totalSessions = filteredSessions.length;
+  const totalDuration = filteredSessions.reduce(
     (sum, s: any) => sum + (s.duration_seconds || 0),
     0
   );
 
   const classMeanDuration =
     totalSessions > 0 ? totalDuration / totalSessions : 0;
-
-  const studentIds = [...new Set(sessions.map((s: any) => s.userId))];
 
   const attemptsByStudent: Record<string, any[]> = {};
   const interactionsByStudent: Record<string, any[]> = {};
@@ -90,7 +110,7 @@ export async function getDashboardAnalytics(
 
       const studentRecord = await pb.collection("users").getOne(studentId);
 
-      const studentSessions = sessions.filter(s => s.userId === studentId);
+      const studentSessions = filteredSessions.filter(s => s.userId === studentId);
       const studentAttempts = attemptsByStudent[studentId] || [];
       const studentInteractions = interactionsByStudent[studentId] || [];
 
