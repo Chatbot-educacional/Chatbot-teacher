@@ -7,7 +7,14 @@ import {
 } from "@/services/analytics-services";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { pb } from "@/lib/pocketbase";
+import { pb, listTeachingClasses, ClassRecord } from "@/lib/pocketbase";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   BarChart,
   Bar,
@@ -34,14 +41,36 @@ export function DashboardAnalytics() {
   const [data, setData] =
     useState<DashboardAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [classes, setClasses] = useState<ClassRecord[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("all");
+
+  // Carrega turmas ao montar o componente
+  useEffect(() => {
+    async function loadClasses() {
+      if (classes.length === 0) {
+        const fetchedClasses = await listTeachingClasses();
+        console.log("Classes carregadas no mount:", fetchedClasses);
+        setClasses(fetchedClasses);
+      }
+    }
+    loadClasses();
+  }, []);
 
   useEffect(() => {
-    async function load() {
+    async function loadData() {
       try {
+        setLoading(true);
         const teacherId = pb.authStore.model?.id;
-        if (!teacherId) return;
+        console.log("teacherId:", teacherId);
+        
+        if (!teacherId) {
+          console.error("Nenhum usuário autenticado");
+          return;
+        }
 
-        const result = await getDashboardAnalytics(teacherId);
+        const classParam = selectedClassId === "all" ? undefined : selectedClassId;
+        console.log("Carregando analytics para turma:", classParam);
+        const result = await getDashboardAnalytics(teacherId, classParam);
         setData(result);
       } catch (error) {
         console.error("Erro ao carregar analytics:", error);
@@ -50,8 +79,8 @@ export function DashboardAnalytics() {
       }
     }
 
-    load();
-  }, []);
+    loadData();
+  }, [selectedClassId]);
 
   if (loading) return (
     <div className="p-12 flex justify-center items-center">
@@ -92,6 +121,52 @@ export function DashboardAnalytics() {
 
   return (
     <div className="container mx-auto px-6 py-8 space-y-8 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      {/* ===================== */}
+      {/* HEADER WITH CLASS SELECTOR */}
+      {/* ===================== */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Análise de Desempenho</h2>
+          <p className="text-muted-foreground mt-1">
+            Visão geral e métricas {selectedClassId === 'all' ? 'de todas as suas turmas' : 'da turma selecionada'}.
+          </p>
+        </div>
+        
+        <div className="w-full sm:w-auto min-w-[300px]">
+          <label className="text-xs font-semibold text-muted-foreground mb-2 block">📚 Selecione uma turma:</label>
+          
+          {classes.length === 0 ? (
+            <div className="w-full border-2 border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 rounded-xl p-4 text-center">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                ℹ️ Nenhuma turma criada
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">
+                Crie uma turma para visualizar as métricas
+              </p>
+            </div>
+          ) : (
+            <Select 
+              value={selectedClassId} 
+              onValueChange={setSelectedClassId}
+            >
+              <SelectTrigger className="w-full bg-card border-2 border-primary/40 shadow-md rounded-xl py-6 transition-all hover:bg-muted/50 hover:shadow-lg focus:ring-primary/20 font-medium">
+                <SelectValue placeholder="Selecione uma turma" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-border/50 shadow-lg">
+                <SelectItem value="all" className="rounded-lg cursor-pointer font-semibold">
+                  📊 Todas as Turmas (Visão Geral)
+                </SelectItem>
+                {classes.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id} className="rounded-lg cursor-pointer">
+                    📖 {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      </div>
 
       {/* ===================== */}
       {/* OVERVIEW CARDS */}
