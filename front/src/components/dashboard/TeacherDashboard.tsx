@@ -76,7 +76,7 @@ export function TeacherDashboard() {
         case 'difficulty':
           valueA = a.difficultTopics.length;
           valueB = b.difficultTopics.length;
-          break;
+        break;
         case 'time':
           // Convert time string to minutes for sorting
           const timeToMinutes = (timeStr: string) => {
@@ -103,7 +103,7 @@ export function TeacherDashboard() {
     });
 
   return (
-    <div className="min-h-screen bg-gradient-bg">
+    <div className="min-h-screen bg-background transition-colors duration-300">
       {/* Fixed Header */}
       <div className="sticky top-0 z-40">
         <DashboardHeader />

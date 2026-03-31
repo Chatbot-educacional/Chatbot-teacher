@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Users, BookOpen, Calendar } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/pocketbase";
 import { DashboardHeader } from "../dashboard/DashboardHeader";
 
 interface ClassRecord {
@@ -26,6 +28,9 @@ export function ClassManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassRecord | null>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<ClassRecord | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -117,6 +122,47 @@ export function ClassManagement() {
     }
   };
 
+  const handleOpenMembersDialog = async (classItem: ClassRecord) => {
+    setSelectedClass(classItem);
+    setIsMembersDialogOpen(true);
+    
+    try {
+      const membersList = await pb.collection('class_members').getFullList({
+        filter: `class = "${classItem.id}"`,
+        expand: 'user',
+      });
+      
+      // Mapear para extrair o registro do usuário e adicionar a URL do avatar
+      const processedMembers = membersList.map((member: any) => {
+        const userRecord = member.expand?.user;
+        if (userRecord) {
+          return {
+            ...userRecord,
+            role: member.role,
+            avatarUrl: getAvatarUrl(userRecord, '80x80'),
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      setMembers(processedMembers);
+    } catch (error) {
+      console.error('Erro ao carregar membros:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os membros da turma.",
+        variant: "destructive",
+      });
+      setMembers([]);
+    }
+  };
+
+  const handleCloseMembersDialog = () => {
+    setIsMembersDialogOpen(false);
+    setSelectedClass(null);
+    setMembers([]);
+  };
+
   const handleDelete = async (classItem: ClassRecord) => {
     if (!confirm(`Tem certeza que deseja excluir a turma "${classItem.name}"?`)) {
       return;
@@ -202,6 +248,7 @@ export function ClassManagement() {
                       <Calendar className="h-4 w-4 inline mr-1" />
                       Criada em
                     </TableHead>
+                    <TableHead className="text-center">Membros</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -221,6 +268,16 @@ export function ClassManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell>{formatDate(classItem.created)}</TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenMembersDialog(classItem)}
+                          title="Ver Membros"
+                        >
+                          <Users className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           <Button
@@ -310,6 +367,50 @@ export function ClassManagement() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para listar membros */}
+      <Dialog open={isMembersDialogOpen} onOpenChange={setIsMembersDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Membros da Turma: {selectedClass?.name}</DialogTitle>
+            <DialogDescription>
+              Lista de alunos e professores na turma.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto">
+            {members.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">Nenhum membro encontrado.</p>
+            ) : (
+              <div className="space-y-3">
+                {members.map((member: any) => (
+                  <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={member.avatarUrl || undefined} alt={member.name} />
+                        <AvatarFallback>
+                          {member.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{member.name}</p>
+                        <p className="text-sm text-muted-foreground">{member.email}</p>
+                      </div>
+                    </div>
+                    <Badge variant={member.role === 'teacher' ? 'default' : 'secondary'} className="capitalize">
+                      {member.role === 'teacher' ? 'Professor' : 'Aluno'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleCloseMembersDialog}>
+              Fechar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
