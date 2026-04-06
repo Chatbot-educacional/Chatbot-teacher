@@ -15,8 +15,6 @@ import { ThemeToggle } from "../ThemeToggle";
 import { useTheme } from "../../contexts/ThemeContext";
 
 export function DashboardHeader() {
-  const [selectedLanguage, setSelectedLanguage] = useState("all");
-  const [selectedPeriod, setSelectedPeriod] = useState("7");
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -40,6 +38,7 @@ export function DashboardHeader() {
           </div>
           <div className="flex gap-2">
             <ThemeToggle />
+
             <Button
               variant="outline"
               size="sm"
@@ -59,38 +58,6 @@ export function DashboardHeader() {
               Logout
             </Button>
           </div>
-        </div>
-
-        {/* Filters Row */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            <span className="text-sm font-medium">Filtros:</span>
-          </div>
-
-          <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-            <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
-              <SelectValue placeholder="Linguagem" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="python">Python</SelectItem>
-              <SelectItem value="c">C</SelectItem>
-              <SelectItem value="java">Java</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-              <SelectItem value="90">Últimos 3 meses</SelectItem>
-              <SelectItem value="365">Último ano</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
     </Card>
