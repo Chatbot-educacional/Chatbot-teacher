@@ -1,45 +1,134 @@
+// services/ragService.ts
+
 import type { GeneratedPlan, LessonActivity } from "@/pages/lesson/types/lessonPlan";
 
-const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || "http://127.0.0.1:11434";
+// ===============================
+// 🔧 CONFIG
+// ===============================
+type Provider = "openai" | "groq" | "anthropic" | "gemini";
 
-async function callOllama(prompt: string): Promise<string> {
-  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+interface LLMConfig {
+  provider: Provider;
+  model: string;
+}
+
+// 👉 modelo padrão (troque dinamicamente se quiser)
+const DEFAULT_MODEL: LLMConfig = {
+  provider: "openai",
+  model: "gpt-4o-mini",
+};
+
+// ===============================
+// 🔥 CALL LLM
+// ===============================
+async function callLLM(prompt: string, config: LLMConfig) {
+  switch (config.provider) {
+    case "openai":
+      return callOpenAI(prompt, config);
+    case "groq":
+      return callGroq(prompt, config);
+    case "anthropic":
+      return callClaude(prompt, config);
+    case "gemini":
+      return callGemini(prompt, config);
+    default:
+      throw new Error("Provider inválido");
+  }
+}
+
+// ===============================
+// PROVIDERS
+// ===============================
+
+async function callOpenAI(prompt: string, config: LLMConfig) {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${import.meta.env.VITE_OPENAI_KEY}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
-      model: "llama3:8b",
-      prompt,
-      stream: false,
-      format: "json",   // ⭐ força saída JSON
-      options: {
-        temperature: 0.3,
-        num_predict: 4096
-      }
+      model: config.model,
+      messages: [
+        { role: "system", content: "Responda SOMENTE em JSON válido." },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.2,
     }),
   });
 
-  if (!res.ok) {
-    throw new Error(`Ollama error: ${res.status}`);
-  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+async function callGroq(prompt: string, config: LLMConfig) {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${import.meta.env.VITE_GROQ_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
 
   const data = await res.json();
-  return data.response;
+  return data.choices?.[0]?.message?.content ?? "";
 }
 
-function extractJSON<T>(raw: string): T {
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start === -1 || end === -1) {
-    throw new Error("Nenhum JSON encontrado na resposta da IA");
-  }
-  const jsonStr = raw.slice(start, end + 1);
+async function callClaude(prompt: string, config: LLMConfig) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: config.model,
+      max_tokens: 4000,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  const data = await res.json();
+  return data.content?.[0]?.text ?? "";
+}
+
+async function callGemini(prompt: string, config: LLMConfig) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1/models/${config.model}:generateContent?key=${import.meta.env.VITE_GEMINI_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    }
+  );
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+}
+
+// ===============================
+// 🛠 JSON SAFE
+// ===============================
+function safeParse<T>(raw: string): T {
   try {
-    return JSON.parse(jsonStr) as T;
+    return JSON.parse(raw);
   } catch {
-    throw new Error("JSON inválido retornado pela IA. Tente novamente.");
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    return JSON.parse(raw.slice(start, end + 1));
   }
 }
 
+// ===============================
+// 🎓 GENERATE PLAN
+// ===============================
 export async function generateLessonPlan(params: {
   discipline: string;
   course: string;
@@ -48,122 +137,90 @@ export async function generateLessonPlan(params: {
   lessonDuration: string;
   ementa: string;
   objetivoGeral: string;
-  fileContent?: string;
+  modelConfig?: LLMConfig;
 }): Promise<GeneratedPlan> {
-  const prompt = `Você é um assistente pedagógico especializado em criar planos de aula universitários.
+  const config = params.modelConfig || DEFAULT_MODEL;
 
-REGRAS OBRIGATÓRIAS:
-- Retorne APENAS um JSON válido, sem markdown, sem texto explicativo, sem comentários.
-- A quantidade de aulas (lessons) DEVE ser EXATAMENTE ${params.totalLessons}.
-- Todos os campos devem estar preenchidos, nunca use undefined ou null.
-- Substitua todos os placeholders <...> por conteúdo real
-- Cada aula deve ter lesson_order sequencial começando em 1.
+  const prompt = `
+RESPONDA SOMENTE EM JSON VÁLIDO.
 
-DADOS DO PLANO:
-- Disciplina: ${params.discipline}
-- Curso: ${params.course}
-- Carga Horária: ${params.workload}
-- Quantidade de Aulas: ${params.totalLessons}
-- Duração de cada Aula: ${params.lessonDuration}
-- Ementa: ${params.ementa}
-- Objetivo Geral: ${params.objetivoGeral}
-${params.fileContent ? `- Conteúdo adicional do arquivo: ${params.fileContent}` : ""}
+Crie um plano de ensino.
 
-Estrutura obrigatória da resposta:
+DISCIPLINA: ${params.discipline}
+CURSO: ${params.course}
+TOTAL DE AULAS: ${params.totalLessons}
 
+EMENTA:
+${params.ementa}
+
+OBJETIVO:
+${params.objetivoGeral}
+
+FORMATO:
 {
- "syllabus": "<syllabus>",
- "general_objective": "<general_objective>",
- "specific_objectives": ["<specific_objective>"],
- "methodology": "<methodology>",
- "assessment": "<assessment>",
- "basic_references": ["<reference>"],
- "complementary_references": ["<reference>"],
+ "syllabus": "",
+ "general_objective": "",
+ "specific_objectives": [],
+ "methodology": "",
+ "assessment": "",
  "lessons":[
   {
    "lesson_order":1,
-   "title":"<lesson_title>",
-   "specific_objectives":["<lesson_objective>"],
-   "content":"<lesson_content>",
-   "methodology":"<lesson_methodology>",
-   "assessment":"<lesson_assessment>"
+   "title":"",
+   "specific_objectives":[],
+   "content":"",
+   "methodology":"",
+   "assessment":""
   }
  ]
 }
 `;
 
-  const raw = await callOllama(prompt);
-  console.log(raw);
-  const plan = extractJSON<GeneratedPlan>(raw);
-
-  if (!plan.lessons || plan.lessons.length === 0) {
-    throw new Error("A IA não retornou nenhuma aula.");
-  }
-
-  return plan;
+  const raw = await callLLM(prompt, config);
+  return safeParse<GeneratedPlan>(raw);
 }
 
+// ===============================
+// 🔁 REGENERATE
+// ===============================
 export async function regenerateLesson(params: {
   discipline: string;
   lessonOrder: number;
   totalLessons: number;
   ementa: string;
   objetivoGeral: string;
-}): Promise<GeneratedPlan["lessons"][0]> {
-  const prompt = `Você é um assistente pedagógico. Gere APENAS UMA aula universitária.
+  modelConfig?: LLMConfig;
+}) {
+  const config = params.modelConfig || DEFAULT_MODEL;
 
-REGRAS:
-- Retorne APENAS JSON válido, sem markdown, sem texto.
-- A aula deve ser a de número ${params.lessonOrder} de ${params.totalLessons}.
+  const prompt = `
+Gere UMA aula em JSON.
 
-DADOS:
-- Disciplina: ${params.discipline}
-- Ementa: ${params.ementa}
-- Objetivo Geral: ${params.objetivoGeral}
+Aula ${params.lessonOrder} de ${params.totalLessons}
+Disciplina: ${params.discipline}
+`;
 
-FORMATO:
-{
-  "lesson_order": ${params.lessonOrder},
-  "title": "",
-  "specific_objectives": [],
-  "content": "",
-  "methodology": "",
-  "assessment": ""
+  const raw = await callLLM(prompt, config);
+  return safeParse(raw);
 }
 
-Retorne APENAS o JSON:`;
-
-  const raw = await callOllama(prompt);
-  return extractJSON<GeneratedPlan["lessons"][0]>(raw);
-}
-
+// ===============================
+// 🧪 ACTIVITY
+// ===============================
 export async function generateActivity(params: {
   assessment: string;
   methodology: string;
   specificObjectives: string[];
+  modelConfig?: LLMConfig;
 }): Promise<LessonActivity> {
-  const prompt = `Você é um assistente pedagógico. Gere UMA atividade avaliativa baseada nos dados abaixo.
+  const config = params.modelConfig || DEFAULT_MODEL;
 
-REGRAS:
-- Retorne APENAS JSON válido, sem markdown, sem texto explicativo.
-- Todos os campos devem estar preenchidos.
+  const prompt = `
+Crie atividade avaliativa em JSON.
 
-DADOS:
-- Avaliação: ${params.assessment}
-- Metodologia: ${params.methodology}
-- Objetivos Específicos: ${params.specificObjectives.join(", ")}
+Objetivos: ${params.specificObjectives.join(", ")}
+`;
 
-FORMATO:
-{
-  "activity_title": "",
-  "description": "",
-  "instructions": "",
-  "evaluation_criteria": ["critério 1", "critério 2"]
-}
-
-Retorne APENAS o JSON:`;
-
-  const raw = await callOllama(prompt);
-  console.log(extractJSON<LessonActivity>(raw));
-  return extractJSON<LessonActivity>(raw);
+  const raw = await callLLM(prompt, config);
+  return safeParse<LessonActivity>(raw);
 }

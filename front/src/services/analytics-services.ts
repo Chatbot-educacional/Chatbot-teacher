@@ -100,7 +100,10 @@ export async function getDashboardAnalytics(
       });
   }
 
-  const activities = await pb.collection("activities").getFullList();
+  const activities = await pb.collection("activities").getFullList(
+
+
+  );
 
   const totalActivities = activities.length;
 
