@@ -8,6 +8,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import {
   Dialog,
   DialogContent,
@@ -635,6 +636,7 @@ export function ClassManagement() {
   return (
     <TooltipProvider delayDuration={120}>
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
+        <DashboardHeader />
         <div className="container mx-auto p-6 space-y-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
@@ -1035,56 +1037,59 @@ export function ClassManagement() {
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter className="flex gap-1">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="flex-1 bg-black text-white hover:bg-gray-800"
-                        onClick={() =>
-                          window.open(
-                            `/atividades/${classItem.id}`,
-                            "_blank"
-                          )
-                        }
-                      >
-                        <Book className="mr-2 h-4 w-4" />
-                        Atividades
-                      </Button>
+                    <CardFooter className="flex flex-wrap gap-2">
+                      <div className="flex flex-1 flex-wrap gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1 min-w-[150px] bg-black text-white hover:bg-gray-800"
+                          onClick={() =>
+                            window.open(
+                              `/atividades/${classItem.id}`,
+                              "_blank"
+                            )
+                          }
+                        >
+                          <Book className="mr-2 h-4 w-4" />
+                          Atividades
+                        </Button>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-black text-white hover:bg-gray-800 "
-                        onClick={() => navigate(`/planos/${classItem.id}`)}
-                      >
-                        <School className="h-4 w-4 mr-2" />
-                        Criar Aula
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-[150px] bg-black text-white hover:bg-gray-800"
+                          onClick={() => navigate(`/planos/${classItem.id}`)}
+                        >
+                          <School className="h-4 w-4 mr-2" />
+                          Criar Aula
+                        </Button>
 
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() =>
-                          window.open(
-                            `https://coderbot.space/class/${classItem.id}`,
-                            "_blank"
-                          )
-                        }
-                      >
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        Fórum
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => openMembersDialog(classItem)}
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Membros
-                      </Button>
-                      <Tooltip>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1 min-w-[150px]"
+                          onClick={() =>
+                            window.open(
+                              `https://coderbot.space/class/${classItem.id}`,
+                              "_blank"
+                            )
+                          }
+                        >
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          Fórum
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-[150px]"
+                          onClick={() => openMembersDialog(classItem)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Membros
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
@@ -1123,6 +1128,7 @@ export function ClassManagement() {
                         </TooltipTrigger>
                         <TooltipContent>Excluir</TooltipContent>
                       </Tooltip>
+                      </div>
                     </CardFooter>
                   </Card>
                 );

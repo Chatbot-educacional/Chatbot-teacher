@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ThemeToggle } from "../ThemeToggle";
 import { useTheme } from "../../contexts/ThemeContext";
 
@@ -19,6 +19,9 @@ export function DashboardHeader() {
   const navigate = useNavigate();
 
   const { theme } = useTheme();
+  const location = useLocation();
+
+  const hideManageButton = location.pathname === "/classes";
 
   const handleLogout = () => {
     logout();
@@ -39,15 +42,17 @@ export function DashboardHeader() {
           <div className="flex gap-2">
             <ThemeToggle />
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-              onClick={() => navigate("/classes")}
-            >
-              <School className="h-4 w-4 mr-2" />
-              Gerenciar Turmas
-            </Button>
+            {!hideManageButton && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                onClick={() => navigate("/classes")}
+              >
+                <School className="h-4 w-4 mr-2" />
+                Gerenciar Turmas
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
