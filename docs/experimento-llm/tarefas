@@ -1,0 +1,40 @@
+# Tarefas de Avaliação
+
+## Estrutura
+
+Cada tarefa solicita a geração de um plano de aula com:
+
+* Ementa
+* Objetivos
+* Sequência didática
+* Exemplos
+* Atividades
+* Referências
+
+## Exemplo de Prompt
+
+```
+Gere um plano de aula sobre Estruturas de Dados utilizando example-based learning, incluindo:
+- Ementa
+- Objetivos gerais e específicos
+- Número de aulas
+- Sequência didática
+- Exemplos práticos
+- Atividades avaliativas
+- Referências bibliográficas
+```
+
+## Tópicos
+
+* Lógica de Programação
+* Estruturas de Dados
+* Algoritmos
+* Programação Orientada a Objetos
+* Recursão
+* Manipulação de arquivos
+
+## Padronização
+
+* Mesmo idioma
+* Mesmo nível (ex: graduação inicial)
+* Mesmo formato de saída
