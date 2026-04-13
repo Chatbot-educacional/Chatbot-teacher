@@ -1,3 +1,4 @@
+
 # Rubrica de Avaliação
 
 ## Escala
