@@ -47,13 +47,23 @@ export interface LessonPlanRecord {
   lesson_duration: string;
   syllabus: string;
   general_objective: string;
+  specific_objectives?: string[];
+  methodology?: string;
+  assessment?: string;
+  basic_references?: string[];
+  complementary_references?: string[];
   status: "draft" | "published";
 }
 
 export interface LessonRecord {
   id?: string;
   lesson_order: number;
-  lesson_plan_id: string;
+  plan_id: string;
+  course: string;
+  workload: string;
+  lesson_duration: string;
+  status: "draft" | "published";
+  class_id?: string;
   title: string;
   specific_objectives: string[];
   content: string;
