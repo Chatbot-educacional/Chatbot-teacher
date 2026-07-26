@@ -72,12 +72,17 @@ export async function saveLessonPlan(
 
       const lessonRecord: LessonRecord = {
         lesson_order: lesson.lesson_order,
-        lesson_plan_id: createdPlan.id,
+        plan_id: createdPlan.id,
+        course: plan.course,
+        workload: plan.workload,
+        lesson_duration: plan.lesson_duration,
+        status: plan.status,
         title: lesson.title,
         specific_objectives: lesson.specific_objectives,
         content: lesson.content,
         methodology: lesson.methodology,
         assessment: lesson.assessment,
+        ...(classId ? { class_id: classId } : {}),
       };
 
       const createdLesson = await pbFetch<{ id: string }>("/lessons/records", {

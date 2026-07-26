@@ -20,15 +20,13 @@ import { Button } from "@/pages/lesson/components/ui/button";
 import { Save, ArrowLeft, BookOpen } from "lucide-react";
 
 type ModelConfig = {
-  provider: "openai" | "groq" | "anthropic" | "gemini";
+  provider: "openai" | "anthropic";
   model: string;
 };
 
 const MODEL_OPTIONS: Record<string, ModelConfig> = {
   openai: { provider: "openai", model: "gpt-4o-mini" },
-  groq: { provider: "groq", model: "mixtral-8x7b-32768" },
   claude: { provider: "anthropic", model: "claude-3-haiku-20240307" },
-  gemini: { provider: "gemini", model: "gemini-1.5-flash" },
 };
 
 const CreateLessonPlan = () => {
@@ -69,6 +67,7 @@ const CreateLessonPlan = () => {
           ementa: data.ementa,
           objetivoGeral: data.objetivoGeral,
           fileContent,
+          modelConfig,
         });
 
         setPlan(result);
@@ -76,7 +75,7 @@ const CreateLessonPlan = () => {
         setCurrentStep(3);
         toast({
           title: "✅ Plano gerado!",
-          description: `${result.lessons.length} aulas criadas com sucesso.`,
+          description: `\${result.lessons.length} aulas criadas com sucesso.`,
         });
       } catch (error) {
         toast({
@@ -90,7 +89,7 @@ const CreateLessonPlan = () => {
         setIsGenerating(false);
       }
     },
-    [toast],
+    [toast, modelConfig],
   );
 
   const handleUpdateLesson = useCallback((index: number, updated: Lesson) => {
@@ -121,6 +120,7 @@ const CreateLessonPlan = () => {
           totalLessons: parseInt(formData.quantidadeAulas),
           ementa: formData.ementa,
           objetivoGeral: formData.objetivoGeral,
+          modelConfig,
         });
         setLessons((prev) =>
           prev.map((l, i) =>
@@ -129,7 +129,7 @@ const CreateLessonPlan = () => {
         );
         toast({
           title: "Aula regenerada!",
-          description: `Aula ${newLesson.lesson_order} atualizada.`,
+          description: `Aula \${newLesson.lesson_order} atualizada.`,
         });
       } catch (error) {
         toast({
@@ -142,7 +142,7 @@ const CreateLessonPlan = () => {
         setRegeneratingIndex(null);
       }
     },
-    [formData, lessons, toast],
+    [formData, lessons, toast, modelConfig],
   );
 
   const handleGenerateActivity = useCallback(
@@ -154,13 +154,14 @@ const CreateLessonPlan = () => {
           assessment: lesson.assessment,
           methodology: lesson.methodology,
           specificObjectives: lesson.specific_objectives,
+          modelConfig,
         });
         setLessons((prev) =>
           prev.map((l, i) => (i === index ? { ...l, activity } : l)),
         );
         toast({
           title: "Atividade gerada!",
-          description: `Atividade criada para a Aula ${lesson.lesson_order}.`,
+          description: `Atividade criada para a Aula \${lesson.lesson_order}.`,
         });
       } catch (error) {
         toast({
@@ -173,7 +174,7 @@ const CreateLessonPlan = () => {
         setActivityIndex(null);
       }
     },
-    [lessons, toast],
+    [lessons, toast, modelConfig],
   );
 
   const handleSave = useCallback(async () => {
@@ -189,9 +190,14 @@ const CreateLessonPlan = () => {
           workload: formData.workload,
           total_lessons: parseInt(formData.quantidadeAulas),
           lesson_duration: formData.duracaoAula,
-          syllabus: plan.syllabus,
-          general_objective: plan.general_objective,
-          status: "draft",
+            syllabus: plan.syllabus,
+            general_objective: plan.general_objective,
+            specific_objectives: plan.specific_objectives,
+            methodology: plan.methodology,
+            assessment: plan.assessment,
+            basic_references: plan.basic_references,
+            complementary_references: plan.complementary_references,
+            status: "draft",
         },
         lessons,
       );
@@ -245,56 +251,52 @@ const CreateLessonPlan = () => {
       {/* Content */}
       <main className="container max-w-4xl pb-32">
         {/* 🔥 HEADER + SELETOR DE MODELO */}
-<div className="glass-card rounded-xl p-4 flex flex-col gap-4">
+        <div className="glass-card rounded-xl p-4 flex flex-col gap-4">
 
-  {/* Linha superior */}
-  <div className="flex items-center justify-between flex-wrap gap-3">
-    <h2 className="text-lg font-bold text-foreground">
-      ⚙️ Configuração da IA
-    </h2>
+          {/* Linha superior */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h2 className="text-lg font-bold text-foreground">
+              ⚙️ Configuração da IA
+            </h2>
 
-    {/* Badge do modelo ativo */}
-    <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
-      {modelConfig.provider} • {modelConfig.model}
-    </span>
-  </div>
+            {/* Badge do modelo ativo */}
+            <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
+              {modelConfig.provider} • {modelConfig.model}
+            </span>
+          </div>
 
-  {/* Select + descrição */}
-  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          {/* Select + descrição */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
 
-    <select
-      value={Object.keys(MODEL_OPTIONS).find(
-        (key) =>
-          MODEL_OPTIONS[key].model === modelConfig.model &&
-          MODEL_OPTIONS[key].provider === modelConfig.provider
-      )}
-      className="border border-border px-4 py-2 rounded-lg bg-background text-sm shadow-sm hover:border-primary transition"
-      onChange={(e) => {
-        const selected = MODEL_OPTIONS[e.target.value];
-        setModelConfig(selected);
+            <select
+              value={Object.keys(MODEL_OPTIONS).find(
+                (key) =>
+                  MODEL_OPTIONS[key].model === modelConfig.model &&
+                  MODEL_OPTIONS[key].provider === modelConfig.provider
+              )}
+              className="border border-border px-4 py-2 rounded-lg bg-background text-sm shadow-sm hover:border-primary transition"
+              onChange={(e) => {
+                const selected = MODEL_OPTIONS[e.target.value];
+                setModelConfig(selected);
 
-        toast({
-          title: "Modelo alterado",
-          description: `${selected.provider} • ${selected.model}`,
-        });
-      }}
-    >
-      <option value="openai">🧠 GPT (OpenAI)</option>
-      <option value="claude">📚 Claude (Anthropic)</option>
-      <option value="groq">⚡ Groq (Ultra rápido)</option>
-      <option value="gemini">🌐 Gemini (Google)</option>
-    </select>
+                toast({
+                  title: "Modelo alterado",
+                  description: `\${selected.provider} • \${selected.model}`,
+                });
+              }}
+            >
+              <option value="openai">🧠 GPT (OpenAI)</option>
+              <option value="claude">📚 Claude (Anthropic)</option>
+            </select>
 
-    {/* Descrição dinâmica */}
-    <p className="text-xs text-muted-foreground">
-      {modelConfig.provider === "openai" && "Melhor equilíbrio geral"}
-      {modelConfig.provider === "claude" && "Melhor para textos educacionais"}
-      {modelConfig.provider === "groq" && "Extremamente rápido"}
-      {modelConfig.provider === "gemini" && "Bom com contexto longo"}
-    </p>
-  </div>
+            {/* Descrição dinâmica */}
+            <p className="text-xs text-muted-foreground">
+              {modelConfig.provider === "openai" && "Melhor equilíbrio geral"}
+              {modelConfig.provider === "claude" && "Melhor para textos educacionais"}
+            </p>
+          </div>
 
-</div>
+        </div>
         {/* Step 1: Form */}
         {currentStep === 1 && (
           <StepOne onSubmit={handleFormSubmit} isLoading={isGenerating} />
@@ -361,7 +363,7 @@ const CreateLessonPlan = () => {
             <div className="space-y-4">
               {lessons.map((lesson, index) => (
                 <LessonCard
-                  key={`${lesson.lesson_order}-${index}`}
+                  key={`\${lesson.lesson_order}-\${index}`}
                   lesson={lesson}
                   onUpdate={(updated) => handleUpdateLesson(index, updated)}
                   onDelete={() => handleDeleteLesson(index)}
@@ -434,3 +436,4 @@ const CreateLessonPlan = () => {
 };
 
 export default CreateLessonPlan;
+
