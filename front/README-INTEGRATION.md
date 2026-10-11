@@ -76,6 +76,17 @@ Através do proxy nginx, o Chatbot-Teacher está disponível em:
 
 ## Estrutura de Dados
 
+### Planos de aula (PocketBase Collections: `lesson_plans` e `lessons`)
+
+Antes de salvar planos completos, adicione à coleção `lesson_plans` um campo
+opcional do tipo **JSON** chamado `full_plan`. O aplicativo grava nesse campo
+o conteúdo completo gerado, incluindo objetivos, metodologia, avaliação,
+referências e as aulas revisadas pelo professor com suas atividades. As aulas
+também continuam sendo salvas individualmente na coleção `lessons`, vinculadas
+pelo campo `lesson_plan_id`.
+
+Sem esse campo JSON, o aplicativo exibirá um erro ao salvar o plano.
+
 ### Usuário (PocketBase Collection: users)
 ```typescript
 interface UserRecord {
