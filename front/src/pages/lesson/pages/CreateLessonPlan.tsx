@@ -194,6 +194,7 @@ const CreateLessonPlan = () => {
           status: "draft",
         },
         lessons,
+        plan,
       );
 
       toast({

@@ -47,6 +47,7 @@ export interface LessonPlanRecord {
   lesson_duration: string;
   syllabus: string;
   general_objective: string;
+  full_plan?: GeneratedPlan;
   status: "draft" | "published";
 }
 
