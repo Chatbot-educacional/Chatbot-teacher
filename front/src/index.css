@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+.loading-logo-image {
+  animation: loading-logo-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes loading-logo-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+  }
+
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.55));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-logo-image {
+    animation: none;
+  }
+}
+
 /* Design System - Light como padrão */
 @layer base {
   :root {

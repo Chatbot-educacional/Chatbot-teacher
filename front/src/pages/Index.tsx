@@ -16,7 +16,17 @@ const Index = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-black">
-        <img src="/coderbot2.png" alt="Loading" className="w-64 h-64 object-contain" />
+        <div
+          className="flex h-64 w-64 items-center justify-center"
+          role="status"
+          aria-label="Carregando"
+        >
+          <img
+            src="/coderbot2.png"
+            alt=""
+            className="loading-logo-image h-full w-full object-contain"
+          />
+        </div>
       </div>
     );
   }
